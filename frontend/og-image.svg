@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <!-- Background with gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0F172A"/>
+      <stop offset="100%" style="stop-color:#1E293B"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-gradient)"/>
+  
+  <!-- App icon -->
+  <g transform="translate(100, 215) scale(2)">
+    <rect width="32" height="32" rx="8" fill="#38BDF8"/>
+    <path d="M10 8h10c2.21 0 4 1.79 4 4s-1.79 4-4 4h-6v8h-4V8zm10 6c1.1 0 2-.9 2-2s-.9-2-2-2h-6v4h6z" 
+          fill="#0F172A"/>
+  </g>
+  
+  <!-- Text -->
+  <text x="200" y="250" font-family="system-ui, -apple-system" font-size="72" font-weight="bold" fill="white">
+    ProjextNexus
+  </text>
+  <text x="200" y="330" font-family="system-ui, -apple-system" font-size="36" fill="#38BDF8">
+    Project Management Reimagined
+  </text>
+</svg>

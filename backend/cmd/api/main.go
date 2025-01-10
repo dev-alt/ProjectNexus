@@ -2,23 +2,36 @@ package main
 
 import (
     "log"
+    "net/http"
     "github.com/gin-gonic/gin"
     "github.com/gin-contrib/cors"
-    "net/http"
+    "projectnexus/internal/api/routes"
+    "projectnexus/internal/repository/mongo"
 )
 
 func main() {
-    r := gin.Default()
+    // Initialize MongoDB connection
+    client, err := mongo.Initialize()
+    if err != nil {
+        log.Fatal("Failed to connect to MongoDB:", err)
+    }
+    defer mongo.Close()
+
+    // Get database instance
+    db := client.Database("projectnexus")
+
+    // Setup the main API router with routes
+    r := routes.SetupRouter(db)
 
     // Configure CORS
-    config := cors.DefaultConfig()
-    config.AllowOrigins = []string{"http://localhost:3050"}
-    config.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
-    config.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
+    corsConfig := cors.DefaultConfig()
+    corsConfig.AllowOrigins = []string{"http://localhost:3050"}
+    corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"}
+    corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Accept", "Authorization"}
     
-    r.Use(cors.New(config))
+    r.Use(cors.New(corsConfig))
     
-    // Health check endpoint
+    // Add non-API routes to the main router
     r.GET("/api/health", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{
             "status": "healthy",
@@ -26,7 +39,6 @@ func main() {
         })
     })
 
-    // Test endpoint with some data
     r.GET("/api/test", func(c *gin.Context) {
         c.JSON(http.StatusOK, gin.H{
             "data": []map[string]interface{}{

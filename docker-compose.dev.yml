@@ -1,17 +1,21 @@
 ﻿services:
   frontend-dev:
-    image: node:18-alpine
-    command: sh -c "npm install && npm run dev"
-    working_dir: /app
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
     ports:
       - "3050:3050"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8085/api/v1
+      - NEXT_PUBLIC_API_URL=http://localhost:8085
       - NODE_ENV=development
       - PORT=3050
       - HOSTNAME=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     volumes:
       - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
     networks:
       - projectnexus-network-dev
 
@@ -46,13 +50,14 @@
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - projectnexus-network-dev
-    command: ["mongod", "--auth", "--bind_ip_all"]
+    command: ["mongod", "--auth"]
     healthcheck:
-      test: mongosh --eval "db.adminCommand('ping')" --host localhost -u root -p mongodbpass --authenticationDatabase admin
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://root:mongodbpass@localhost:27017/admin?authSource=admin --quiet
       interval: 10s
       timeout: 10s
       retries: 5
       start_period: 40s
+
 
   mongo-express:
     image: mongo-express
@@ -75,3 +80,5 @@ networks:
 
 volumes:
   mongodb_data_dev:
+  frontend_node_modules:
+  frontend_next_cache:

@@ -1,101 +1,155 @@
-import Image from "next/image";
+import React from 'react';
+import { FileText, Users, Clock, Award } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+const statsCards = [
+  {
+    title: 'Active Projects',
+    value: '12',
+    description: 'Projects in progress',
+    icon: FileText,
+    trend: '+2 this week'
+  },
+  {
+    title: 'Team Members',
+    value: '24',
+    description: 'Across all projects',
+    icon: Users,
+    trend: '+3 this month'
+  },
+  {
+    title: 'Recent Updates',
+    value: '48',
+    description: 'In the last 7 days',
+    icon: Clock,
+    trend: '15% increase'
+  },
+  {
+    title: 'Completed Projects',
+    value: '32',
+    description: 'Successfully delivered',
+    icon: Award,
+    trend: '+5 this quarter'
+  }
+];
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <div className="space-y-6">
+        {/* Welcome Section */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Welcome to ProjectNexus</h1>
+          <p className="mt-2 text-gray-600">
+            Your central hub for project planning and documentation. Start by creating a new project or continue working on existing ones.
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {statsCards.map((card) => {
+            const Icon = card.icon;
+            return (
+                <Card key={card.title}>
+                  <CardHeader className="flex flex-row items-center justify-between pb-2">
+                    <CardTitle className="text-sm font-medium text-gray-500">
+                      {card.title}
+                    </CardTitle>
+                    <Icon className="w-4 h-4 text-gray-500" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{card.value}</div>
+                    <p className="text-xs text-gray-600 mt-1">{card.description}</p>
+                    <div className="text-xs text-green-600 mt-2">{card.trend}</div>
+                  </CardContent>
+                </Card>
+            );
+          })}
+        </div>
+
+        {/* Recent Activity */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[
+                {
+                  action: "Documentation updated",
+                  project: "E-commerce Platform",
+                  time: "2 hours ago",
+                  user: "Alex Morrison"
+                },
+                {
+                  action: "New project created",
+                  project: "Mobile App Redesign",
+                  time: "5 hours ago",
+                  user: "Sarah Chen"
+                },
+                {
+                  action: "Team member added",
+                  project: "API Integration",
+                  time: "1 day ago",
+                  user: "Michael Scott"
+                }
+              ].map((activity, i) => (
+                  <div key={i} className="flex items-center justify-between py-3">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900">{activity.action}</p>
+                      <p className="text-sm text-gray-500">{activity.project}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">{activity.time}</p>
+                      <p className="text-sm text-gray-900">{activity.user}</p>
+                    </div>
+                  </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                Create New Project
+              </button>
+              <button className="w-full bg-gray-100 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200">
+                Browse Documents
+              </button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Getting Started</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3">
+                <li className="flex items-center text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
+                  Create your first project
+                </li>
+                <li className="flex items-center text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
+                  Set up your team members
+                </li>
+                <li className="flex items-center text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
+                  Start documenting your plans
+                </li>
+                <li className="flex items-center text-sm text-gray-600">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
+                  Explore AI-powered suggestions
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
   );
 }

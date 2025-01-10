@@ -1,0 +1,17 @@
+﻿FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package.json package-lock.json ./
+RUN npm install
+RUN npm install critters
+
+# Copy the rest of the application
+COPY . .
+
+# Expose port
+EXPOSE 3050
+
+# Command to run the development server with webpack instead of turbopack
+CMD ["npm", "run", "dev"]

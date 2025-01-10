@@ -3,14 +3,14 @@
 import (
     "net/http"
     "github.com/gin-gonic/gin"
-    "github.com/dev-alt/projectnexus/backend/internal/services"
+    "projectnexus/internal/services"
 )
 
 type AuthHandler struct {
-    authService *services.AuthService
+    authService services.AuthService
 }
 
-func NewAuthHandler(authService *services.AuthService) *AuthHandler {
+func NewAuthHandler(authService services.AuthService) *AuthHandler {
     return &AuthHandler{
         authService: authService,
     }

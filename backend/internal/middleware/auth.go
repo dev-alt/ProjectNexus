@@ -3,10 +3,10 @@
 import (
     "strings"
     "github.com/gin-gonic/gin"
-    "github.com/dev-alt/projectnexus/backend/internal/services"
+    "projectnexus/internal/services"
 )
 
-func AuthMiddleware(authService *services.AuthService) gin.HandlerFunc {
+func AuthMiddleware(authService services.AuthService) gin.HandlerFunc {
     return func(c *gin.Context) {
         authHeader := c.GetHeader("Authorization")
         if authHeader == "" {

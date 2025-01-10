@@ -8,7 +8,7 @@ import (
 
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
-    "github.com/dev-alt/projectnexus/backend/internal/models"
+    "projectnexus/internal/models"
 )
 
 var testDB *mongo.Database

@@ -1,6 +1,4 @@
-﻿version: '3.8'
-
-services:
+﻿services:
   frontend-dev:
     image: node:18-alpine
     command: sh -c "npm install && npm run dev"

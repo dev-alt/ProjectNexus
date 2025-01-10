@@ -6,7 +6,7 @@ import (
     "go.mongodb.org/mongo-driver/bson"
     "go.mongodb.org/mongo-driver/bson/primitive"
     "go.mongodb.org/mongo-driver/mongo"
-    "github.com/dev-alt/projectnexus/backend/internal/models"
+    "projectnexus/internal/models"
 )
 
 type UserRepository struct {

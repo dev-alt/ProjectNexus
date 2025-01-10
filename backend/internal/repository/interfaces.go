@@ -2,7 +2,7 @@
 
 import (
     "context"
-    "github.com/dev-alt/projectnexus/backend/internal/models"
+    "projectnexus/internal/models"
 )
 
 type UserRepository interface {

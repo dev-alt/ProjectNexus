@@ -1,12 +1,13 @@
-﻿package services
+﻿// internal/services/auth.go
+package services
 
 import (
     "context"
     "errors"
     "time"
     "github.com/golang-jwt/jwt/v5"
-    "github.com/dev-alt/projectnexus/backend/internal/models"
-    "github.com/dev-alt/projectnexus/backend/internal/repository"
+    "projectnexus/internal/models"
+    "projectnexus/internal/repository"
 )
 
 var (
@@ -14,7 +15,13 @@ var (
     ErrUserExists        = errors.New("user already exists")
 )
 
-type AuthService struct {
+type AuthService interface {
+    Register(ctx context.Context, input RegisterInput) (*AuthResponse, error)
+    Login(ctx context.Context, input LoginInput) (*AuthResponse, error)
+    ValidateToken(token string) (*models.User, error)
+}
+
+type authService struct {
     userRepo repository.UserRepository
     jwtSecret []byte
 }
@@ -35,17 +42,17 @@ type AuthResponse struct {
     User  *models.User `json:"user"`
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtSecret string) *AuthService {
-    return &AuthService{
+func NewAuthService(userRepo repository.UserRepository, jwtSecret string) AuthService {
+    return &authService{
         userRepo:  userRepo,
         jwtSecret: []byte(jwtSecret),
     }
 }
 
-func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthResponse, error) {
+func (s *authService) Register(ctx context.Context, input RegisterInput) (*AuthResponse, error) {
     // Check if user exists
-    existing, _ := s.userRepo.GetByEmail(ctx, input.Email)
-    if existing != nil {
+    existing, err := s.userRepo.GetByEmail(ctx, input.Email)
+    if err == nil && existing != nil {
         return nil, ErrUserExists
     }
 
@@ -75,7 +82,7 @@ func (s *AuthService) Register(ctx context.Context, input RegisterInput) (*AuthR
     }, nil
 }
 
-func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
+func (s *authService) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
     user, err := s.userRepo.GetByEmail(ctx, input.Email)
     if err != nil {
         return nil, ErrInvalidCredentials
@@ -97,7 +104,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*AuthRespons
     }, nil
 }
 
-func (s *AuthService) ValidateToken(tokenString string) (*models.User, error) {
+func (s *authService) ValidateToken(tokenString string) (*models.User, error) {
     token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
         return s.jwtSecret, nil
     })
@@ -124,7 +131,7 @@ func (s *AuthService) ValidateToken(tokenString string) (*models.User, error) {
     return user, nil
 }
 
-func (s *AuthService) generateToken(user *models.User) (string, error) {
+func (s *authService) generateToken(user *models.User) (string, error) {
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
         "user_id": user.ID,
         "email":   user.Email,
