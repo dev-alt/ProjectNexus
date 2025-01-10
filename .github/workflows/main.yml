@@ -1,0 +1,84 @@
+services:
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3050:3050"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8085
+      - NODE_ENV=development
+      - PORT=3050
+      - HOSTNAME=0.0.0.0
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - projectnexus-network-dev
+
+  backend-dev:
+    image: golang:1.23.4-alpine
+    command: sh -c "go mod tidy && go run cmd/api/main.go"
+    working_dir: /app
+    ports:
+      - "8085:8085"
+    environment:
+      - MONGODB_URI=mongodb://root:mongodbpass@mongodb:27017/projectnexus?authSource=admin
+      - JWT_SECRET=your-secret-key-here
+      - GIN_MODE=debug
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - projectnexus-network-dev
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mongodbpass
+      MONGO_INITDB_DATABASE: admin
+    volumes:
+      - mongodb_data_dev:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - projectnexus-network-dev
+    command: ["mongod", "--auth"]
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://root:mongodbpass@localhost:27017/admin?authSource=admin --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongodbpass
+      ME_CONFIG_MONGODB_URL: mongodb://root:mongodbpass@mongodb:27017/projectnexus?authSource=admin
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - projectnexus-network-dev
+
+networks:
+  projectnexus-network-dev:
+    driver: bridge
+
+volumes:
+  mongodb_data_dev:
+  frontend_node_modules:
+  frontend_next_cache:
