@@ -1,0 +1,77 @@
+﻿services:
+  frontend-dev:
+    image: node:18-alpine
+    command: sh -c "npm install && npm run dev"
+    working_dir: /app
+    ports:
+      - "3050:3050"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8085/api/v1
+      - NODE_ENV=development
+      - PORT=3050
+      - HOSTNAME=0.0.0.0
+    volumes:
+      - ./frontend:/app
+    networks:
+      - projectnexus-network-dev
+
+  backend-dev:
+    image: golang:1.23.4-alpine
+    command: sh -c "go mod tidy && go run cmd/api/main.go"
+    working_dir: /app
+    ports:
+      - "8085:8085"
+    environment:
+      - MONGODB_URI=mongodb://root:mongodbpass@mongodb:27017/projectnexus?authSource=admin
+      - JWT_SECRET=your-secret-key-here
+      - GIN_MODE=debug
+    volumes:
+      - ./backend:/app
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - projectnexus-network-dev
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: mongodbpass
+      MONGO_INITDB_DATABASE: admin
+    volumes:
+      - mongodb_data_dev:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - projectnexus-network-dev
+    command: ["mongod", "--auth", "--bind_ip_all"]
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')" --host localhost -u root -p mongodbpass --authenticationDatabase admin
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: mongodbpass
+      ME_CONFIG_MONGODB_URL: mongodb://root:mongodbpass@mongodb:27017/projectnexus?authSource=admin
+      ME_CONFIG_MONGODB_SERVER: mongodb
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    networks:
+      - projectnexus-network-dev
+
+networks:
+  projectnexus-network-dev:
+    driver: bridge
+
+volumes:
+  mongodb_data_dev:
