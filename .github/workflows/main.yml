@@ -7,7 +7,97 @@ on:
     branches: [ main ]
 
 jobs:
-  # ... previous jobs remain the same ...
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1}).ok' --quiet"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for MongoDB
+        run: |
+          echo "Waiting for MongoDB to start..."
+          sleep 30
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Build backend
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build Backend
+        working-directory: ./backend
+        run: |
+          go mod download
+          CGO_ENABLED=0 GOOS=linux go build -o projectnexus-api ./cmd/api
+      
+      # Build frontend
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: |
+          npm ci
+          ls -la
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        run: |
+          npm run build
+          ls -la
+          ls -la .next || echo ".next directory not found"
+
+      - name: Debug Frontend Build Output
+        working-directory: ./frontend
+        run: |
+          pwd
+          ls -la
+          echo "Checking .next directory:"
+          ls -la .next || echo ".next directory not found"
+          echo "Current directory structure:"
+          find . -type d
+      
+      # Upload artifacts with explicit paths
+      - name: Upload Backend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: backend/projectnexus-api
+          retention-days: 1
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: |
+            frontend/.next/**/*
+            frontend/package.json
+            frontend/package-lock.json
+          retention-days: 1
 
   deploy:
     needs: build
@@ -27,25 +117,26 @@ jobs:
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          known_hosts: |
+            107.174.221.212 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDCJhjagKpHvrq82CEumss3MrwQVOkY+2MkP8skyTiw613YCFe5AOYE+cCpxyLimeG6hZuowZ/aGU73A5n8iFc/gR18i/mmBak3sXIv9FOlpm9Vk0+N0Ae80RNH1bZaoT+3RngR00z7O037wdiPJWFZyiymesk5sJIv8cySsHftiy9q7fjS1M5CuUTfB7DHvOBl5DFEmP/lZ4L2B0IZfznhYwREuPuON0RwGakO6H8Nh2OdbII4HfrdgXdRjR23zE00gWOT+CeUPKOyBIiadPxZPy0b8THCQBwSn2GSLm9gPgAq3ftVrWjXaZO14yXAUDO6FTIg773nza+e9Fvc4px+1GywRKyY0XuvM7mQKROIKvSm6vlC+Ig4PsA05ZAPaPkF8cVQriVLE6QKYqqFqG/xTfK80Zr1mAmAFR+4G2tfLLOHKhKNIYlRObaregl3+bWYOAzRSuSuY3cKyqfS4eRfOiHYngcdWUsvTj+7CPYpA4+3RPpFalbkkkbGhKGO2ps=
           if_key_exists: replace
           passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
 
       - name: Deploy to Ubuntu Server
         env:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_HOST: 107.174.221.212
         run: |
           # Create directories
-          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ~/projectnexus/{backend,frontend/.next}"
+          ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ~/projectnexus/{backend,frontend/.next}"
           
           # Copy artifacts
-          scp -o StrictHostKeyChecking=no backend/projectnexus-api $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/backend/
-          scp -o StrictHostKeyChecking=no -r frontend/.next/* $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/.next/
-          scp -o StrictHostKeyChecking=no frontend/package*.json $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/
+          scp backend/projectnexus-api $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/backend/
+          scp -r frontend/.next/* $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/.next/
+          scp frontend/package*.json $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/
           
           # Deploy
-          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
             set -e
             chmod +x ~/projectnexus/backend/projectnexus-api
             cd ~/projectnexus/frontend
