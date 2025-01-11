@@ -95,7 +95,7 @@ jobs:
         echo "Files in the frontend directory:"
         ls -al ./frontend
         
-    # Upload artifacts
+      # Upload artifacts
     - name: Upload Backend Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -107,6 +107,7 @@ jobs:
       with:
         name: frontend-build
         path: frontend/.next
+        working-directory: ./frontend
         
   deploy:
     needs: build
