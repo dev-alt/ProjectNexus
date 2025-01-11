@@ -104,32 +104,49 @@ jobs:
           name: frontend-build
           path: ./frontend-build
 
-      - name: Debug Artifacts
+      - name: Debug Local Files
         run: |
+          pwd
+          echo "Current directory structure:"
+          find . -type f
           echo "Backend files:"
           ls -la backend-build/
           echo "Frontend files:"
           ls -la frontend-build/
 
       - name: Deploy to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          source: "backend-build/projectnexus-api,frontend-build/"
+          target: "~/projectnexus/temp/"
+          strip_components: 1
+
+      - name: Setup and Start Services
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          script_stop: true
           script: |
-            set -e
-            echo "Creating project directories..."
+            echo "Setting up project structure..."
             mkdir -p ~/projectnexus/{backend,frontend/.next}
             
-            echo "Copying backend files..."
-            cp backend-build/projectnexus-api ~/projectnexus/backend/
+            echo "Moving backend files..."
+            mv ~/projectnexus/temp/projectnexus-api ~/projectnexus/backend/
             chmod +x ~/projectnexus/backend/projectnexus-api
             
-            echo "Copying frontend files..."
-            cp -r frontend-build/.next/* ~/projectnexus/frontend/.next/
-            cp frontend-build/package*.json ~/projectnexus/frontend/
+            echo "Moving frontend files..."
+            mv ~/projectnexus/temp/.next/* ~/projectnexus/frontend/.next/
+            mv ~/projectnexus/temp/package*.json ~/projectnexus/frontend/
+            
+            echo "Cleaning up temp directory..."
+            rm -rf ~/projectnexus/temp
             
             echo "Installing frontend dependencies..."
             cd ~/projectnexus/frontend
