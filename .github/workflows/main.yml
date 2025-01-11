@@ -19,16 +19,16 @@ jobs:
       - name: Build frontend image
         uses: docker/build-push-action@v4
         with:
-          context: ./frontend  # Path to the frontend directory
-          file: ./frontend/Dockerfile  # Path to the frontend Dockerfile
+          context: ./frontend
+          file: ./frontend/Dockerfile
           load: true
           tags: projectnexus-frontend:latest
-    
+
       - name: Build backend image
         uses: docker/build-push-action@v4
         with:
-          context: ./backend  # Path to the backend directory
-          file: ./backend/Dockerfile  # Path to the backend Dockerfile
+          context: ./backend
+          file: ./backend/Dockerfile
           load: true
           tags: projectnexus-backend:latest
 
@@ -38,17 +38,17 @@ jobs:
       - name: Save backend image as tar archive
         run: docker save -o backend.tar projectnexus-backend:latest
 
-      - name: Install SSH key
+      - name: Install SSH key with passphrase
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}  # Add the passphrase here
 
       - name: Deploy to server
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_SSH_PASSPHRASE: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
