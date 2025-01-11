@@ -9,7 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     services:
       mongodb:
         image: mongo:7
@@ -57,24 +56,28 @@ jobs:
         with:
           node-version: '18'
 
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
       - name: Build Frontend
         working-directory: ./frontend
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
       
-      # Upload artifacts
+      # Upload artifacts with explicit paths
       - name: Upload Backend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: backend-build
           path: backend/projectnexus-api
+          retention-days: 1
 
       - name: Upload Frontend Artifact
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: ./frontend/.next/
+          path: frontend/.next
+          retention-days: 1
 
   deploy:
     needs: build
@@ -88,13 +91,13 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: backend-build
-          path: backend-build
+          path: backend/projectnexus-api
 
       - name: Download Frontend Artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: frontend-build/frontend/.next
+          path: frontend/.next
 
       - name: Set up SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -103,55 +106,27 @@ jobs:
 
       - name: Deploy to Ubuntu Server
         env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock # SSH agent socket path
+          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
         run: |
-          # Stop existing services
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "sudo systemctl stop projectnexus-api"
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "sudo systemctl stop projectnexus-frontend"
+          # Create directories first
+          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/{backend,frontend/.next}"
           
-          # --- Backend Deployment ---
+          # Copy artifacts
+          scp -o StrictHostKeyChecking=no backend/projectnexus-api ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/backend/
+          scp -o StrictHostKeyChecking=no -r frontend/.next/* ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/.next/
           
-          # Create directory on the server
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/backend"
-          
-          # Copy backend artifact to server
-          scp -o StrictHostKeyChecking=no backend-build/projectnexus-api ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/backend/
-          
-          # Set execute permissions on the server
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "chmod +x ~/projectnexus/backend/projectnexus-api"
-          
-          # --- Frontend Deployment ---
-          
-          # Create directory on the server
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/frontend/.next"
-          
-          # Copy frontend artifact to server using `scp`
-          scp -o StrictHostKeyChecking=no -r frontend-build/frontend/.next ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/.next
-          
-          # Install frontend dependencies on the server
+          # Set permissions and update services
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            chmod +x ~/projectnexus/backend/projectnexus-api
             cd ~/projectnexus/frontend
-            npm ci
-          EOF
+            npm ci --production
           
-          # --- Update systemd Config ---
-          # Update environment variables in systemd service files
-          sudo sed -i "s#your_mongodb_uri#${{ secrets.MONGODB_URI }}#g" /etc/systemd/system/projectnexus-api.service
-          sudo sed -i "s#your_jwt_secret#${{ secrets.JWT_SECRET }}#g" /etc/systemd/system/projectnexus-api.service
-          sudo sed -i "s#your_next_public_api_url#${{ secrets.NEXT_PUBLIC_API_URL }}#g" /etc/systemd/system/projectnexus-frontend.service
+            # Update environment variables
+            echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env
           
-          # Create .env file for frontend
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "echo 'NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}' > ~/projectnexus/frontend/.env"
-          
-          # --- Docker Compose ---
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+            # Restart services using Docker Compose
             cd ~/projectnexus
             docker compose down
             docker compose build --no-cache
             docker compose up -d
           EOF
-          
-          # Reload systemd and restart services
-          sudo systemctl daemon-reload
-          sudo systemctl start projectnexus-api
-          sudo systemctl start projectnexus-frontend
