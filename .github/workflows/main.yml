@@ -1,0 +1,151 @@
+name: ProjectNexus CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:latest
+        env:
+          MONGO_INITDB_ROOT_USERNAME: root
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:mongodbpass@localhost:27017/admin --quiet"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    # Backend tests
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Backend Tests
+      working-directory: ./backend
+      run: |
+        go mod download
+        go test ./... -v
+      env:
+        MONGODB_URI: mongodb://root:mongodbpass@localhost:27017/projectnexus?authSource=admin
+
+    # Frontend tests
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Frontend Tests
+      working-directory: ./frontend
+      run: |
+        npm ci
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    # Build backend
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+        
+    - name: Build Backend
+      working-directory: ./backend
+      run: |
+        go mod download
+        CGO_ENABLED=0 GOOS=linux go build -o projectnexus-api ./cmd/api
+
+    # Build frontend
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Build Frontend
+      working-directory: ./frontend
+      run: |
+        npm ci
+        npm run build
+
+    # Upload artifacts
+    - name: Upload Backend Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: backend-build
+        path: backend/projectnexus-api
+        
+    - name: Upload Frontend Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/.next
+        
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    # Download artifacts
+    - name: Download Backend Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: backend-build
+        path: backend-build
+        
+    - name: Download Frontend Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend-build
+        
+    # Deploy to Ubuntu server
+    - name: Deploy to Ubuntu Server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_SSH_KEY }}
+        script: |
+          # Stop existing services
+          sudo systemctl stop projectnexus-api
+          sudo systemctl stop projectnexus-frontend
+          
+          # Backend deployment
+          mkdir -p ~/projectnexus/backend
+          cp backend-build/projectnexus-api ~/projectnexus/backend/
+          chmod +x ~/projectnexus/backend/projectnexus-api
+          
+          # Frontend deployment
+          mkdir -p ~/projectnexus/frontend/.next
+          cp -r frontend-build/* ~/projectnexus/frontend/.next/
+
+          # Update environment variables in systemd service files (example for projectnexus-api.service)
+          # Replace "your_mongodb_uri", "your_jwt_secret", etc. with actual values or secrets
+          sudo sed -i 's/your_mongodb_uri/${{ secrets.MONGODB_URI }}/g' /etc/systemd/system/projectnexus-api.service
+          sudo sed -i 's/your_jwt_secret/${{ secrets.JWT_SECRET }}/g' /etc/systemd/system/projectnexus-api.service
+          sudo sed -i 's/your_next_public_api_url/${{ secrets.NEXT_PUBLIC_API_URL }}/g' /etc/systemd/system/projectnexus-frontend.service
+
+          # Reload systemd and restart services
+          sudo systemctl daemon-reload
+          sudo systemctl start projectnexus-api
+          sudo systemctl start projectnexus-frontend
