@@ -1,163 +1,70 @@
-name: ProjectNexus CI/CD
+name: Deploy to Ubuntu Server
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches:
+      - main  # Trigger deployment on push to the main branch
 
 jobs:
-  test:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:7
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.frontend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projectnexus-frontend:latest
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.backend
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/projectnexus-backend:latest
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+
+      - name: Deploy to server
         env:
-          MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: testpassword
-        ports:
-          - 27017:27017
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Wait for MongoDB
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_PASSPHRASE: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
-          echo "Waiting for MongoDB to start..."
-          sleep 30
+          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          # Stop and remove existing containers
+          docker-compose down
 
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+          # Pull the latest images
+          docker-compose pull
 
-    steps:
-      - uses: actions/checkout@v4
-      
-      # Build backend
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
+          # Start the services
+          docker-compose up -d
 
-      - name: Build Backend
-        working-directory: ./backend
-        run: |
-          go mod download
-          CGO_ENABLED=0 GOOS=linux go build -o projectnexus-api ./cmd/api
-      
-      # Build frontend
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
-        run: |
-          npm ci
-          ls -la
-
-      - name: Build Frontend
-        working-directory: ./frontend
-        run: |
-          npm run build
-          ls -la
-          ls -la .next || echo ".next directory not found"
-      
-      # Package all deployment files
-      - name: Prepare Deployment Package
-        run: |
-          mkdir -p deploy
-          # Copy backend files
-          cp backend/projectnexus-api deploy/
-          # Copy frontend files
-          cp -r frontend/.next deploy/ || true
-          cp frontend/package*.json deploy/
-          # Copy Docker files
-          cp docker-compose*.yml deploy/
-          cp Dockerfile* deploy/ || true
-          # Create archive
-          tar -czf deploy.tar.gz deploy/
-
-      # Upload deployment package
-      - name: Upload Deployment Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: deploy-package
-          path: deploy.tar.gz
-          retention-days: 1
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - name: Download Deployment Package
-        uses: actions/download-artifact@v4
-        with:
-          name: deploy-package
-          path: .
-
-      - name: Extract Package
-        run: |
-          tar -xzf deploy.tar.gz
-          ls -la deploy/
-
-      - name: Deploy to Server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          source: "deploy/*"
-          target: "~/projectnexus/"
-          strip_components: 1
-
-      - name: Setup and Start Services
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          envs: MONGODB_URI,MONGO_INITDB_ROOT_PASSWORD,JWT_SECRET,NEXT_PUBLIC_API_URL
-          environment: |
-            MONGODB_URI=${{ secrets.MONGODB_URI }}
-            MONGO_INITDB_ROOT_PASSWORD=${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
-            JWT_SECRET=${{ secrets.JWT_SECRET }}
-            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
-          script: |
-            echo "Setting up environment..."
-            cd ~/projectnexus
-            
-            # Create environment file for Docker Compose
-            cat > .env << EOL
-            MONGODB_URI=${MONGODB_URI}
-            MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-            JWT_SECRET=${JWT_SECRET}
-            NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-            EOL
-            
-            echo "Setting up project structure..."
-            mkdir -p backend frontend/.next
-            chmod +x backend/projectnexus-api
-            
-            echo "Installing frontend dependencies..."
-            cd frontend
-            npm ci --production
-            echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" > .env
-            
-            echo "Starting services with dev configuration..."
-            cd ..
-            docker compose -f docker-compose.yml -f docker-compose.dev.yml down
-            echo "Building services..."
-            docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache
-            echo "Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
-            
-            echo "Deployment complete. Checking service status..."
-            docker compose ps
+          # Clean up unused images
+          docker image prune -f
+          EOF
