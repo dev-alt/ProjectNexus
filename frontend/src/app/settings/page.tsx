@@ -1,14 +1,15 @@
 ﻿'use client';
 
 import { useState } from 'react';
+import Image from 'next/image'; // Import next/image
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Lock, Bell, Layout, Moon, Globe, Mail, Smartphone } from 'lucide-react';
+import { User, Lock, Bell, Layout, Mail, Smartphone } from 'lucide-react';
 
 export default function SettingsPage() {
     const [notifications, setNotifications] = useState({
         email: true,
         desktop: true,
-        updates: false
+        updates: false,
     });
 
     const [theme, setTheme] = useState('light');
@@ -27,9 +28,12 @@ export default function SettingsPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center space-x-4">
-                        <img
-                            src="/api/placeholder/64/64"
+                        {/* Use next/image for optimized image */}
+                        <Image
+                            src="/api/placeholder/64/64" // Path to your image
                             alt="Profile"
+                            width={64} // Specify width
+                            height={64} // Specify height
                             className="h-16 w-16 rounded-full"
                         />
                         <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">

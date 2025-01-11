@@ -1,9 +1,11 @@
 ﻿'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Plus, Mail, User, Building } from 'lucide-react';
+import Image from 'next/image'; // Import next/image
+import { Card, CardContent } from '@/components/ui/card';
+import { Search, Plus, User, Building } from 'lucide-react';
 
+// Team member data
 const team = [
     {
         id: 1,
@@ -12,8 +14,8 @@ const team = [
         email: 'alex@example.com',
         department: 'Engineering',
         projects: ['E-commerce Platform', 'API Integration'],
-        avatar: '/api/placeholder/32/32',
-        status: 'Active'
+        avatar: '/api/placeholder/32/32', // Placeholder image path
+        status: 'Active',
     },
     {
         id: 2,
@@ -22,8 +24,8 @@ const team = [
         email: 'sarah@example.com',
         department: 'Design',
         projects: ['Mobile App Redesign'],
-        avatar: '/api/placeholder/32/32',
-        status: 'Active'
+        avatar: '/api/placeholder/32/32', // Placeholder image path
+        status: 'Active',
     },
     {
         id: 3,
@@ -32,18 +34,20 @@ const team = [
         email: 'michael@example.com',
         department: 'Management',
         projects: ['E-commerce Platform', 'Mobile App Redesign'],
-        avatar: '/api/placeholder/32/32',
-        status: 'Away'
-    }
+        avatar: '/api/placeholder/32/32', // Placeholder image path
+        status: 'Away',
+    },
 ];
 
 export default function TeamPage() {
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredMembers = team.filter(member =>
-        member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        member.department.toLowerCase().includes(searchQuery.toLowerCase())
+    // Filter team members based on search query
+    const filteredMembers = team.filter(
+        (member) =>
+            member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            member.role.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            member.department.toLowerCase().includes(searchQuery.toLowerCase()),
     );
 
     return (
@@ -124,7 +128,14 @@ export default function TeamPage() {
                         <tr key={member.id} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                    <img className="h-8 w-8 rounded-full" src={member.avatar} alt="" />
+                                    {/* Use next/image for optimized image loading */}
+                                    <Image
+                                        className="h-8 w-8 rounded-full"
+                                        src={member.avatar}
+                                        alt={`${member.name}'s avatar`} // Add alt text for accessibility
+                                        width={32} // Specify width
+                                        height={32} // Specify height
+                                    />
                                     <div className="ml-4">
                                         <div className="text-sm font-medium text-gray-900">{member.name}</div>
                                         <div className="text-sm text-gray-500">{member.email}</div>
@@ -138,17 +149,26 @@ export default function TeamPage() {
                             <td className="px-6 py-4">
                                 <div className="flex flex-wrap gap-1">
                                     {member.projects.map((project, index) => (
-                                        <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                {project}
-                                            </span>
+                                        <span
+                                            key={index}
+                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                                        >
+                        {project}
+                      </span>
                                     ))}
                                 </div>
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                        ${member.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                                        {member.status}
-                                    </span>
+                  <span
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${
+                          member.status === 'Active'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                  >
+                    {member.status}
+                  </span>
                             </td>
                         </tr>
                     ))}

@@ -1,9 +1,11 @@
 ﻿'use client';
 
 import { useState } from 'react';
+import Image from 'next/image'; // Import next/image
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Plus, Filter, LayoutGrid, Rows, Image, Link2, ExternalLink, MoreVertical } from 'lucide-react';
+import { Search, Plus, LayoutGrid, Rows, Link2, ExternalLink, MoreVertical } from 'lucide-react';
 
+// Mockup data - ideally, this would come from an API
 const mockups = [
     {
         id: 1,
@@ -14,7 +16,7 @@ const mockups = [
         author: 'Sarah Chen',
         status: 'In Review',
         thumbnail: '/api/placeholder/300/200',
-        tool: 'Figma'
+        tool: 'Figma',
     },
     {
         id: 2,
@@ -25,7 +27,7 @@ const mockups = [
         author: 'Alex Morrison',
         status: 'Approved',
         thumbnail: '/api/placeholder/300/200',
-        tool: 'Sketch'
+        tool: 'Sketch',
     },
     {
         id: 3,
@@ -36,19 +38,23 @@ const mockups = [
         author: 'Michael Scott',
         status: 'Draft',
         thumbnail: '/api/placeholder/300/200',
-        tool: 'Adobe XD'
-    }
+        tool: 'Adobe XD',
+    },
 ];
 
+// Mockup types for the filter dropdown
 const mockupTypes = ['All Types', 'Wireframe', 'Prototype', 'High-fidelity'];
 
 export default function MockupsPage() {
+    // State for search query, selected type, and view mode
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedType, setSelectedType] = useState('All Types');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    const filteredMockups = mockups.filter(mockup => {
-        const matchesSearch = mockup.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    // Filter mockups based on search query and selected type
+    const filteredMockups = mockups.filter((mockup) => {
+        const matchesSearch =
+            mockup.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             mockup.project.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesType = selectedType === 'All Types' || mockup.type === selectedType;
         return matchesSearch && matchesType;
@@ -56,7 +62,7 @@ export default function MockupsPage() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
+            {/* Header section with title and "New Mockup" button */}
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-semibold">Mockups & Wireframes</h1>
                 <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
@@ -65,7 +71,7 @@ export default function MockupsPage() {
                 </button>
             </div>
 
-            {/* Controls */}
+            {/* Controls section with search input, type filter, and view mode toggles */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-grow">
                     <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
@@ -84,17 +90,23 @@ export default function MockupsPage() {
                         onChange={(e) => setSelectedType(e.target.value)}
                     >
                         {mockupTypes.map((type) => (
-                            <option key={type} value={type}>{type}</option>
+                            <option key={type} value={type}>
+                                {type}
+                            </option>
                         ))}
                     </select>
                     <button
-                        className={`px-3 py-2 border border-gray-300 rounded-lg ${viewMode === 'grid' ? 'bg-gray-100' : 'bg-white'}`}
+                        className={`px-3 py-2 border border-gray-300 rounded-lg ${
+                            viewMode === 'grid' ? 'bg-gray-100' : 'bg-white'
+                        }`}
                         onClick={() => setViewMode('grid')}
                     >
                         <LayoutGrid className="h-5 w-5 text-gray-500" />
                     </button>
                     <button
-                        className={`px-3 py-2 border border-gray-300 rounded-lg ${viewMode === 'list' ? 'bg-gray-100' : 'bg-white'}`}
+                        className={`px-3 py-2 border border-gray-300 rounded-lg ${
+                            viewMode === 'list' ? 'bg-gray-100' : 'bg-white'
+                        }`}
                         onClick={() => setViewMode('list')}
                     >
                         <Rows className="h-5 w-5 text-gray-500" />
@@ -102,15 +114,19 @@ export default function MockupsPage() {
                 </div>
             </div>
 
-            {/* Mockups Display */}
+            {/* Mockups display section - renders either grid or list view */}
             {viewMode === 'grid' ? (
+                // Grid view
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredMockups.map((mockup) => (
                         <Card key={mockup.id} className="hover:shadow-lg transition-shadow">
                             <div className="relative">
-                                <img
+                                {/* Use next/image for optimized image loading */}
+                                <Image
                                     src={mockup.thumbnail}
                                     alt={mockup.name}
+                                    width={300}
+                                    height={200}
                                     className="w-full h-40 object-cover rounded-t-lg"
                                 />
                                 <div className="absolute top-2 right-2">
@@ -134,15 +150,27 @@ export default function MockupsPage() {
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center text-sm">
                                         <div className="flex items-center space-x-2">
-                                            <Image className="h-4 w-4 text-gray-500" />
+                                            <Image // This is the icon. Replace with next/image if you have a local image, otherwise leave as is.
+                                                src="/placeholder-icon.svg" // Replace with the actual path if you have a specific icon
+                                                alt={`${mockup.type} icon`}
+                                                width={16}
+                                                height={16}
+                                                className="h-4 w-4 text-gray-500"
+                                            />
                                             <span>{mockup.type}</span>
                                         </div>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium
-                                            ${mockup.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                                            mockup.status === 'In Review' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'}`}>
-                                            {mockup.status}
-                                        </span>
+                                        <span
+                                            className={`px-2 py-1 rounded-full text-xs font-medium
+                        ${
+                                                mockup.status === 'Approved'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : mockup.status === 'In Review'
+                                                        ? 'bg-yellow-100 text-yellow-800'
+                                                        : 'bg-gray-100 text-gray-800'
+                                            }`}
+                                        >
+                      {mockup.status}
+                    </span>
                                     </div>
                                     <div className="flex justify-between items-center text-sm text-gray-500">
                                         <span>{mockup.author}</span>
@@ -161,6 +189,7 @@ export default function MockupsPage() {
                     ))}
                 </div>
             ) : (
+                // List view
                 <div className="bg-white rounded-lg shadow">
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
@@ -190,9 +219,12 @@ export default function MockupsPage() {
                             <tr key={mockup.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4">
                                     <div className="flex items-center">
-                                        <img
+                                        {/* Use next/image for optimized image loading */}
+                                        <Image
                                             src={mockup.thumbnail}
-                                            alt=""
+                                            alt={mockup.name} // Add alt text for accessibility
+                                            width={40}
+                                            height={40}
                                             className="h-10 w-10 rounded object-cover"
                                         />
                                         <div className="ml-4">
@@ -209,12 +241,18 @@ export default function MockupsPage() {
                                     <div className="text-sm text-gray-500">{mockup.tool}</div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                            ${mockup.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                                            mockup.status === 'In Review' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'}`}>
-                                            {mockup.status}
-                                        </span>
+                    <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
+                        ${
+                            mockup.status === 'Approved'
+                                ? 'bg-green-100 text-green-800'
+                                : mockup.status === 'In Review'
+                                    ? 'bg-yellow-100 text-yellow-800'
+                                    : 'bg-gray-100 text-gray-800'
+                        }`}
+                    >
+                      {mockup.status}
+                    </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {new Date(mockup.lastModified).toLocaleDateString()}

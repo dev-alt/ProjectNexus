@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Folder, Search, Filter, Plus, MoreVertical } from 'lucide-react';
+import { FileText, Search, Filter, Plus, MoreVertical } from 'lucide-react';
 
 // Mock data - replace with actual data fetching
 const documents = [
