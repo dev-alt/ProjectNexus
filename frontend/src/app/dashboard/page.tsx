@@ -1,4 +1,5 @@
-﻿'use client';
+﻿// app/dashboard/page.tsx
+'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Users, Clock, Award } from 'lucide-react';

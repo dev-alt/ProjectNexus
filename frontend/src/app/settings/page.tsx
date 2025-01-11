@@ -1,4 +1,5 @@
-﻿'use client';
+﻿// app/settings/page.tsx
+'use client';
 
 import { useState } from 'react';
 import Image from 'next/image'; // Import next/image

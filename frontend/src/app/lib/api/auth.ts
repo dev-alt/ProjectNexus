@@ -1,4 +1,4 @@
-﻿// lib/api/auth.ts
+﻿// app/lib/api/auth.ts
 interface LoginCredentials {
     email: string;
     password: string;

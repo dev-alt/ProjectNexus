@@ -1,3 +1,4 @@
+// app/page.tsx
 import React from 'react';
 import { FileText, Users, Clock, Award } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

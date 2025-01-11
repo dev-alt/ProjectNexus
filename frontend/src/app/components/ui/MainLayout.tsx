@@ -1,8 +1,11 @@
-﻿"use client";
+﻿// app/components/ui/MainLayout.tsx
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { FileText, Home, Settings, Users, Layout, LogOut } from 'lucide-react';
+import TopNav from './TopNav';
 
 const MainNav = () => {
     const pathname = usePathname();
@@ -12,14 +15,17 @@ const MainNav = () => {
         { href: '/projects', label: 'Projects', icon: Layout },
         { href: '/documents', label: 'Documents', icon: FileText },
         { href: '/mockups', label: 'Mockups', icon: FileText },
-        { href: '/ProjectPresentation', label: 'Project Presentation', icon: FileText },
         { href: '/team', label: 'Team', icon: Users },
         { href: '/settings', label: 'Settings', icon: Settings },
     ];
 
     return (
         <nav className="h-screen w-64 bg-gray-900 text-gray-100 fixed left-0 top-0">
-            <div className="p-4">
+            {/* Logo and Brand */}
+            <div className="p-4 flex items-center space-x-2">
+                <div className="h-8 w-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <span className="text-white text-lg font-bold">P</span>
+                </div>
                 <h1 className="text-xl font-bold">ProjectNexus</h1>
             </div>
 
@@ -59,7 +65,8 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
         <div className="min-h-screen bg-gray-50">
             <MainNav />
-            <main className="pl-64">
+            <TopNav />
+            <main className="pl-64 pt-16">
                 <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                     {children}
                 </div>

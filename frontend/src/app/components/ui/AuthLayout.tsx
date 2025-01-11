@@ -1,4 +1,5 @@
-﻿import React from 'react';
+﻿// app/components/ui/AuthLayout.tsx
+import React from 'react';
 
 export default function AuthLayout({
                                        children,
