@@ -19,16 +19,16 @@ jobs:
       - name: Build frontend image
         uses: docker/build-push-action@v4
         with:
-          context: .
-          file: ./Dockerfile.frontend
+          context: ./frontend  # Path to the frontend directory
+          file: ./frontend/Dockerfile  # Path to the frontend Dockerfile
           load: true
           tags: projectnexus-frontend:latest
-
+    
       - name: Build backend image
         uses: docker/build-push-action@v4
         with:
-          context: .
-          file: ./Dockerfile.backend
+          context: ./backend  # Path to the backend directory
+          file: ./backend/Dockerfile  # Path to the backend Dockerfile
           load: true
           tags: projectnexus-backend:latest
 

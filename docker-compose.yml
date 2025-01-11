@@ -1,33 +1,24 @@
-﻿version: '3.8'
-
-services:
+﻿services:
   frontend:
-    image: ${DOCKER_USERNAME}/projectnexus-frontend:latest
+    image: projectnexus-frontend:latest
     ports:
       - "3050:3050"
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - NODE_ENV=production
-      - PORT=3050
-      - HOSTNAME=0.0.0.0
     networks:
       - projectnexus-network
-    restart: unless-stopped
 
   backend:
-    image: ${DOCKER_USERNAME}/projectnexus-backend:latest
+    image: projectnexus-backend:latest
     ports:
       - "8085:8085"
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET}
-      - PORT=8085
-      - GIN_MODE=release
     depends_on:
       - mongodb
     networks:
       - projectnexus-network
-    restart: unless-stopped
 
   mongodb:
     image: mongo:latest
@@ -41,7 +32,6 @@ services:
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - projectnexus-network
-    restart: unless-stopped
 
 networks:
   projectnexus-network:
