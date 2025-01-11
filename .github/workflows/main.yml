@@ -9,44 +9,43 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    
     services:
       mongodb:
         image: mongo:7
         env:
           MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: H7aM2xJp9sK8vFqT5nE3rG+Z1yW/C4bL # Replace with your generated password
+          MONGO_INITDB_ROOT_PASSWORD: H7aM2xJp9sK8vFqT5nE3rG+Z1yW/C4bL
         ports:
           - 27017:27017
         options: >-
           --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:H7aM2xJp9sK8vFqT5nE3rG+Z1yW/C4bL@localhost:27017/admin --quiet"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 10 # Increased retries
-
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
-      
+  
       # Backend tests
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-
+  
       - name: Backend Tests
         working-directory: ./backend
         run: |
           go mod download
           go test ./... -v
         env:
-          MONGODB_URI: mongodb://root:H7aM2xJp9sK8vFqT5nE3rG+Z1yW/C4bL@localhost:27017/projectnexus?authSource=admin # Replace with your generated password
-      
+          MONGODB_URI: mongodb://root:H7aM2xJp9sK8vFqT5nE3rG+Z1yW/C4bL@localhost:27017/projectnexus?authSource=admin # Use your generated password
+  
       # Frontend tests
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-
+  
       - name: Frontend Tests
         working-directory: ./frontend
         run: |
