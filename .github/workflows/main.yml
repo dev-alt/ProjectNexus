@@ -30,31 +30,32 @@ jobs:
         run: |
           echo "Waiting for MongoDB to start..."
           sleep 30
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/checkout@v4
-  
+
       - name: Download Backend Artifact
         uses: actions/download-artifact@v4
         with:
           name: backend-build
           path: backend-build
-  
+
       - name: Download Frontend Artifact
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
           path: frontend-build/frontend/.next
-  
+
       - name: Set up SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-  
+
       - name: Deploy to Ubuntu Server
         env:
           SSH_AUTH_SOCK: /tmp/ssh_agent.sock # SSH agent socket path
@@ -62,41 +63,41 @@ jobs:
           # Stop existing services
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "sudo systemctl stop projectnexus-api"
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "sudo systemctl stop projectnexus-frontend"
-  
+          
           # --- Backend Deployment ---
-  
+          
           # Create directory on the server
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/backend"
-  
+          
           # Copy backend artifact to server
           scp -o StrictHostKeyChecking=no backend-build/projectnexus-api ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/backend/
-  
+          
           # Set execute permissions on the server
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "chmod +x ~/projectnexus/backend/projectnexus-api"
-  
+          
           # --- Frontend Deployment ---
-  
+          
           # Create directory on the server
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/frontend/.next"
-  
+          
           # Copy frontend artifact to server using `scp`
           scp -o StrictHostKeyChecking=no -r frontend-build/frontend/.next ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/.next
-  
+          
           # Install frontend dependencies on the server
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             cd ~/projectnexus/frontend
             npm ci
           EOF
-  
+          
           # --- Update systemd Config ---
           # Update environment variables in systemd service files
           sudo sed -i "s#your_mongodb_uri#${{ secrets.MONGODB_URI }}#g" /etc/systemd/system/projectnexus-api.service
           sudo sed -i "s#your_jwt_secret#${{ secrets.JWT_SECRET }}#g" /etc/systemd/system/projectnexus-api.service
           sudo sed -i "s#your_next_public_api_url#${{ secrets.NEXT_PUBLIC_API_URL }}#g" /etc/systemd/system/projectnexus-frontend.service
-  
+          
           # Create .env file for frontend
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "echo 'NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}' > ~/projectnexus/frontend/.env"
-  
+          
           # --- Docker Compose ---
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
             cd ~/projectnexus
