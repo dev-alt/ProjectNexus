@@ -2,8 +2,16 @@
 import Link from 'next/link';
 import { Search, X, Clock, Layout, File, Users, ArrowRight } from 'lucide-react';
 
-type SearchHistoryItem = { id: string; query: string; timestamp: string; };
-type SearchSuggestion = { id: string; text: string; type: 'project' | 'document' | 'person'; };
+type SearchHistoryItem = {
+    id: string;
+    query: string;
+    timestamp: string;
+};
+type SearchSuggestion = {
+    id: string;
+    text: string;
+    type: 'project' | 'document' | 'person';
+};
 
 interface SearchBarProps {
     onSearch: (query: string) => void;
@@ -35,7 +43,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
         { id: '2', text: 'API Documentation', type: 'document' as const },
         { id: '3', text: 'Sarah Chen', type: 'person' as const },
         { id: '4', text: 'Mobile App Design', type: 'project' as const },
-    ].filter(item =>
+    ].filter((item) =>
         item.text.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -45,12 +53,15 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
         const newSearch = {
             id: Date.now().toString(),
             query: query.trim(),
-            timestamp: 'Just now'
+            timestamp: 'Just now',
         };
 
         const updatedSearches = [newSearch, ...recentSearches.slice(0, 4)];
         setRecentSearches(updatedSearches);
-        localStorage.setItem('projectnexus-recent-searches', JSON.stringify(updatedSearches));
+        localStorage.setItem(
+            'projectnexus-recent-searches',
+            JSON.stringify(updatedSearches)
+        );
 
         onSearch(query);
         setSearchQuery('');
@@ -70,12 +81,15 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
 
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
-    }, []);
+    }, [showDropdown]); // Add showDropdown to dependency array
 
     // Handle click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+            if (
+                searchRef.current &&
+                !searchRef.current.contains(event.target as Node)
+            ) {
                 setShowDropdown(false);
             }
         };
@@ -115,7 +129,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
             </div>
 
             {showDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-10">
                     {/* Quick Navigation */}
                     <div className="p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
@@ -128,6 +142,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
                                     <Link
                                         key={shortcut.key}
                                         href={shortcut.href}
+                                        onClick={() => setShowDropdown(false)} // Close dropdown on link click
                                         className="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
                                     >
                                         <Icon className="h-4 w-4 text-gray-500 dark:text-gray-400 mr-2" />
@@ -174,8 +189,12 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
                                 Suggestions
                             </h3>
                             {suggestions.map((suggestion) => {
-                                const Icon = suggestion.type === 'project' ? Layout :
-                                    suggestion.type === 'document' ? File : Users;
+                                const Icon =
+                                    suggestion.type === 'project'
+                                        ? Layout
+                                        : suggestion.type === 'document'
+                                            ? File
+                                            : Users;
                                 return (
                                     <button
                                         key={suggestion.id}
@@ -199,7 +218,7 @@ const SearchBar = ({ onSearch }: SearchBarProps) => {
                     {/* No Results */}
                     {searchQuery && suggestions.length === 0 && (
                         <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                            No results found for "{searchQuery}"
+                            No results found for &quot;{searchQuery}&quot;
                         </div>
                     )}
                 </div>

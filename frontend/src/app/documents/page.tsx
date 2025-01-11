@@ -1,17 +1,30 @@
 ﻿// app/documents/page.tsx
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Search, Filter, Plus, MoreVertical } from 'lucide-react';
+import React, { useState } from 'react';
+import { Filter, Plus } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import SearchInput from '@/components/ui/SearchInput';
+import Select from '@/components/ui/Select';
+import DocumentCard from '@/components/ui/DocumentCard';
+import DocumentForm from '@/components/ui/DocumentForm';
+import DocumentViewer from '@/components/ui/DocumentViewer';
+import { Document } from '@/types/types';
 
+interface DocumentFormData {
+    title: string;
+    type: string;
+    project: string;
+    content: string;
+}
 // Mock data - replace with actual data fetching
-const documents = [
+const initialDocuments: Document[] = [
     {
         id: 1,
         title: 'E-commerce Platform HLD',
         type: 'High-Level Design',
         project: 'E-commerce Platform',
+        content: 'This is the high-level design document for our e-commerce platform. It outlines the major components and their interactions, including the user interface, backend services, and database schema. The design focuses on scalability and maintainability, ensuring the platform can handle a growing number of users and products. Key features include user authentication, product catalog, shopping cart, and payment processing. The document also includes a deployment strategy and monitoring plan.',
         lastModified: '2024-01-10T10:30:00',
         author: 'Alex Morrison',
         status: 'In Review'
@@ -21,6 +34,7 @@ const documents = [
         title: 'Mobile App Architecture',
         type: 'Architecture',
         project: 'Mobile App Redesign',
+        content: 'Mobile app architecture specifications and guidelines. This document outlines the architecture for the redesign of our mobile application. It includes details on the chosen architecture pattern (MVVM), data flow, and component structure. The architecture is designed to improve performance, enhance user experience, and facilitate easier maintenance and updates. Key aspects covered include navigation, state management, data caching, and API communication.',
         lastModified: '2024-01-09T15:45:00',
         author: 'Sarah Chen',
         status: 'Draft'
@@ -30,6 +44,7 @@ const documents = [
         title: 'API Integration Specs',
         type: 'Technical Spec',
         project: 'API Integration',
+        content: 'API integration specifications and implementation details. This technical specification document details the integration of external APIs into our system. It includes information on authentication methods, data formats, endpoints, and error handling. The document provides guidelines for developers on how to interact with these APIs, ensuring consistency and reliability. It also covers aspects of rate limiting, security, and data validation.',
         lastModified: '2024-01-08T09:15:00',
         author: 'Michael Scott',
         status: 'Approved'
@@ -37,109 +52,178 @@ const documents = [
 ];
 
 const documentTypes = [
-    'All Documents',
-    'High-Level Design',
-    'Low-Level Design',
-    'Architecture',
-    'Technical Spec',
-    'Requirements'
+    { value: 'all', label: 'All Documents' },
+    { value: 'High-Level Design', label: 'High-Level Design' },
+    { value: 'Low-Level Design', label: 'Low-Level Design' },
+    { value: 'Architecture', label: 'Architecture' },
+    { value: 'Technical Spec', label: 'Technical Spec' },
+    { value: 'Requirements', label: 'Requirements' }
 ];
 
+type ModalState = {
+    type: 'none' | 'create' | 'edit' | 'view';
+    document?: Document;
+};
+
 export default function DocumentsPage() {
+    const [documents, setDocuments] = useState<Document[]>(initialDocuments);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedType, setSelectedType] = useState('All Documents');
+    const [selectedType, setSelectedType] = useState('all');
+    const [modalState, setModalState] = useState<ModalState>({ type: 'none' });
+    const [isLoading, setIsLoading] = useState(false);
 
     const filteredDocuments = documents.filter(doc => {
         const matchesSearch = doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
             doc.project.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesType = selectedType === 'All Documents' || doc.type === selectedType;
+        const matchesType = selectedType === 'all' || doc.type === selectedType;
         return matchesSearch && matchesType;
     });
+
+    const handleCreateDocument = async (formData: DocumentFormData) => {
+        try {
+            setIsLoading(true);
+
+            // In a real application, this would be an API call
+            const newDocument = {
+                id: documents.length + 1,
+                title: formData.title,
+                type: formData.type,
+                project: formData.project,
+                content: formData.content,
+                lastModified: new Date().toISOString(),
+                author: 'Current User', // This would come from auth context
+                status: 'Draft'
+            };
+
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            setDocuments(prev => [...prev, newDocument]);
+            setModalState({ type: 'none' });
+        } catch (error) {
+            console.error('Error creating document:', error);
+            // Here you would show an error notification
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleUpdateDocument = async (formData: DocumentFormData) => {
+        if (!modalState.document) return;
+
+        try {
+            setIsLoading(true);
+
+            // In a real application, this would be an API call
+            const updatedDocument = {
+                ...modalState.document,
+                ...formData,
+                lastModified: new Date().toISOString(),
+            };
+
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            setDocuments(prev =>
+                prev.map(doc =>
+                    doc.id === updatedDocument.id ? updatedDocument : doc
+                )
+            );
+            setModalState({ type: 'none' });
+        } catch (error) {
+            console.error('Error updating document:', error);
+            // Here you would show an error notification
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleDocumentDelete = async (doc: Document) => {
+        if (window.confirm('Are you sure you want to delete this document?')) {
+            try {
+                // In a real application, this would be an API call
+                await new Promise(resolve => setTimeout(resolve, 500));
+                setDocuments(prev => prev.filter(d => d.id !== doc.id));
+            } catch (error) {
+                console.error('Error deleting document:', error);
+                // Here you would show an error notification
+            }
+        }
+    };
 
     return (
         <div className="space-y-6">
             {/* Header */}
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-semibold">Documents</h1>
-                <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                    <Plus className="h-4 w-4 mr-2" />
+                <Button
+                    leftIcon={<Plus className="h-4 w-4" />}
+                    onClick={() => setModalState({ type: 'create' })}
+                >
                     New Document
-                </button>
+                </Button>
             </div>
 
             {/* Search and Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-grow">
-                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Search documents..."
-                        className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                </div>
+                <SearchInput
+                    placeholder="Search documents..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="flex-grow"
+                />
                 <div className="flex gap-2">
-                    <select
-                        className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    <Select
+                        options={documentTypes}
                         value={selectedType}
                         onChange={(e) => setSelectedType(e.target.value)}
-                    >
-                        {documentTypes.map((type) => (
-                            <option key={type} value={type}>{type}</option>
-                        ))}
-                    </select>
-                    <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                        <Filter className="h-5 w-5 text-gray-500" />
-                    </button>
+                    />
+                    <Button
+                        variant="secondary"
+                        leftIcon={<Filter className="h-5 w-5" />}
+                        aria-label="Additional filters"
+                    />
                 </div>
             </div>
 
             {/* Document Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredDocuments.map((doc) => (
-                    <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <div className="flex items-center space-x-2">
-                                <FileText className="h-5 w-5 text-blue-600" />
-                                <CardTitle className="text-base font-medium">{doc.title}</CardTitle>
-                            </div>
-                            <button className="text-gray-500 hover:text-gray-700">
-                                <MoreVertical className="h-5 w-5" />
-                            </button>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Project</span>
-                                    <span className="font-medium">{doc.project}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Type</span>
-                                    <span>{doc.type}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Last Modified</span>
-                                    <span>{new Date(doc.lastModified).toLocaleDateString()}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-gray-500">Author</span>
-                                    <span>{doc.author}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-sm pt-2">
-                                    <span className="text-gray-500">Status</span>
-                                    <span className={`px-2 py-1 rounded-full text-xs
-                                        ${doc.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                                        doc.status === 'In Review' ? 'bg-yellow-100 text-yellow-800' :
-                                            'bg-gray-100 text-gray-800'}`}>
-                                        {doc.status}
-                                    </span>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <DocumentCard
+                        key={doc.id}
+                        document={doc}
+                        onView={() => setModalState({ type: 'view', document: doc })}
+                        onEdit={() => setModalState({ type: 'edit', document: doc })}
+                        onDelete={handleDocumentDelete}
+                    />
                 ))}
             </div>
+
+            {/* Modals */}
+            {modalState.type === 'create' && (
+                <DocumentForm
+                    onSubmit={handleCreateDocument}
+                    onClose={() => setModalState({ type: 'none' })}
+                    isLoading={isLoading}
+                />
+            )}
+
+            {modalState.type === 'edit' && modalState.document && (
+                <DocumentForm
+                    initialData={modalState.document}
+                    onSubmit={handleUpdateDocument}
+                    onClose={() => setModalState({ type: 'none' })}
+                    isLoading={isLoading}
+                />
+            )}
+
+            {modalState.type === 'view' && modalState.document && (
+                <DocumentViewer
+                    document={modalState.document}
+                    onClose={() => setModalState({ type: 'none' })}
+                    onEdit={() => setModalState({ type: 'edit', document: modalState.document })}
+                />
+            )}
         </div>
     );
 }
