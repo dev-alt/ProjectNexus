@@ -55,14 +55,31 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: ./frontend/package-lock.json
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
-        run: npm ci
+        run: |
+          npm ci
+          ls -la
 
       - name: Build Frontend
         working-directory: ./frontend
-        run: npm run build
+        run: |
+          npm run build
+          ls -la
+          ls -la .next || echo ".next directory not found"
+
+      - name: Debug Frontend Build Output
+        working-directory: ./frontend
+        run: |
+          pwd
+          ls -la
+          echo "Checking .next directory:"
+          ls -la .next || echo ".next directory not found"
+          echo "Current directory structure:"
+          find . -type d
       
       # Upload artifacts with explicit paths
       - name: Upload Backend Artifact
@@ -76,7 +93,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: frontend-build
-          path: frontend/.next
+          path: |
+            frontend/.next/**/*
+            frontend/package.json
+            frontend/package-lock.json
           retention-days: 1
 
   deploy:
@@ -97,7 +117,16 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
-          path: frontend/.next
+          path: frontend
+
+      - name: Debug Downloaded Artifacts
+        run: |
+          echo "Backend files:"
+          ls -la backend/
+          echo "Frontend files:"
+          ls -la frontend/
+          echo "Frontend .next directory:"
+          ls -la frontend/.next || echo ".next directory not found"
 
       - name: Set up SSH Agent
         uses: webfactory/ssh-agent@v0.9.0
@@ -114,6 +143,7 @@ jobs:
           # Copy artifacts
           scp -o StrictHostKeyChecking=no backend/projectnexus-api ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/backend/
           scp -o StrictHostKeyChecking=no -r frontend/.next/* ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/.next/
+          scp -o StrictHostKeyChecking=no frontend/package*.json ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/
           
           # Set permissions and update services
           ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
