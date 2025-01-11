@@ -82,6 +82,8 @@ jobs:
             frontend/.next/**/*
             frontend/package.json
             frontend/package-lock.json
+            docker-compose.yml
+            docker-compose.dev.yml
           retention-days: 1
 
   deploy:
@@ -121,7 +123,7 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          source: "backend-build/projectnexus-api,frontend-build/"
+          source: "backend-build/projectnexus-api,frontend-build/,docker-compose*.yml"
           target: "~/projectnexus/temp/"
           strip_components: 1
 
@@ -132,21 +134,25 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          script_stop: true
+          command_timeout: "20m"
           script: |
             echo "Setting up project structure..."
-            mkdir -p ~/projectnexus/{backend,frontend/.next}
+            mkdir -p ~/projectnexus/{backend,frontend}
             
             echo "Moving backend files..."
-            mv ~/projectnexus/temp/projectnexus-api ~/projectnexus/backend/
+            cp ~/projectnexus/temp/projectnexus-api ~/projectnexus/backend/
             chmod +x ~/projectnexus/backend/projectnexus-api
             
             echo "Moving frontend files..."
-            mv ~/projectnexus/temp/.next/* ~/projectnexus/frontend/.next/
-            mv ~/projectnexus/temp/package*.json ~/projectnexus/frontend/
+            if [ -d ~/projectnexus/temp/.next ]; then
+              cp -r ~/projectnexus/temp/.next ~/projectnexus/frontend/
+            else
+              echo "Warning: .next directory not found"
+              ls -la ~/projectnexus/temp/
+            fi
             
-            echo "Cleaning up temp directory..."
-            rm -rf ~/projectnexus/temp
+            cp ~/projectnexus/temp/package*.json ~/projectnexus/frontend/
+            cp ~/projectnexus/temp/docker-compose*.yml ~/projectnexus/
             
             echo "Installing frontend dependencies..."
             cd ~/projectnexus/frontend
@@ -155,8 +161,14 @@ jobs:
             echo "Updating environment variables..."
             echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env
             
-            echo "Restarting services..."
+            echo "Copying Docker files..."
             cd ~/projectnexus
-            docker compose down
-            docker compose build --no-cache
-            docker compose up -d
+            chmod +x backend/projectnexus-api
+            
+            echo "Checking Docker Compose files..."
+            ls -la docker-compose*.yml
+            
+            echo "Starting services..."
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml down || true
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
