@@ -106,7 +106,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-build
-        path: frontend-build
+        path: ./
         
   deploy:
     needs: build
@@ -127,7 +127,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: frontend-build
-        path: frontend-build
+        path: ./frontend-build
         
     # Deploy to Ubuntu server
     - name: Deploy to Ubuntu Server
@@ -148,7 +148,7 @@ jobs:
           
           # Frontend deployment
           mkdir -p ~/projectnexus/frontend/.next
-          cp -r frontend-build/* ~/projectnexus/frontend/.next/
+          cp -r frontend-build/frontend/.next/ ~/projectnexus/frontend/.next/
 
           # Update environment variables in systemd service files (example for projectnexus-api.service)
           # Replace "your_mongodb_uri", "your_jwt_secret", etc. with actual values or secrets
