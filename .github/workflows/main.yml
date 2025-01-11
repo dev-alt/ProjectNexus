@@ -14,14 +14,9 @@ jobs:
         image: mongo:7
         env:
           MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+          MONGO_INITDB_ROOT_PASSWORD: testpassword
         ports:
           - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping: 1}).ok' --quiet"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v4
@@ -70,18 +65,8 @@ jobs:
           npm run build
           ls -la
           ls -la .next || echo ".next directory not found"
-
-      - name: Debug Frontend Build Output
-        working-directory: ./frontend
-        run: |
-          pwd
-          ls -la
-          echo "Checking .next directory:"
-          ls -la .next || echo ".next directory not found"
-          echo "Current directory structure:"
-          find . -type d
       
-      # Upload artifacts with explicit paths
+      # Upload artifacts
       - name: Upload Backend Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -98,6 +83,33 @@ jobs:
             frontend/package.json
             frontend/package-lock.json
           retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Backend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: ./backend-build
+
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: ./frontend-build
+
+      - name: Debug Artifacts
+        run: |
+          echo "Backend files:"
+          ls -la backend-build/
+          echo "Frontend files:"
+          ls -la frontend-build/
 
       - name: Deploy to Server
         uses: appleboy/ssh-action@master
