@@ -16,27 +16,27 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push frontend image
+      - name: Build frontend image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile.frontend
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/projectnexus-frontend:latest
+          load: true
+          tags: projectnexus-frontend:latest
 
-      - name: Build and push backend image
+      - name: Build backend image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ./Dockerfile.backend
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/projectnexus-backend:latest
+          load: true
+          tags: projectnexus-backend:latest
+
+      - name: Save frontend image as tar archive
+        run: docker save -o frontend.tar projectnexus-frontend:latest
+
+      - name: Save backend image as tar archive
+        run: docker save -o backend.tar projectnexus-backend:latest
 
       - name: Install SSH key
         uses: shimataro/ssh-key-action@v2
@@ -54,17 +54,23 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
-          ssh-keyscan -H $DEPLOY_HOST >> ~/.ssh/known_hosts
-          ssh -i ~/.ssh/id_rsa -o IdentitiesOnly=yes -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          # Transfer Docker images to the server
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
+          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
+
+          # SSH into the server and deploy
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          # Load Docker images
+          docker load -i ~/frontend.tar
+          docker load -i ~/backend.tar
+
           # Stop and remove existing containers
           docker-compose down
-
-          # Pull the latest images
-          docker-compose pull
 
           # Start the services
           docker-compose up -d
 
-          # Clean up unused images
+          # Clean up unused images and tar files
           docker image prune -f
+          rm ~/frontend.tar ~/backend.tar
           EOF
