@@ -99,55 +99,35 @@ jobs:
             frontend/package-lock.json
           retention-days: 1
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - name: Deploy to Server
+        uses: appleboy/ssh-action@master
         with:
-          name: frontend-build
-          path: frontend
-
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
-        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          known_hosts: |
-            107.174.221.212 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDCJhjagKpHvrq82CEumss3MrwQVOkY+2MkP8skyTiw613YCFe5AOYE+cCpxyLimeG6hZuowZ/aGU73A5n8iFc/gR18i/mmBak3sXIv9FOlpm9Vk0+N0Ae80RNH1bZaoT+3RngR00z7O037wdiPJWFZyiymesk5sJIv8cySsHftiy9q7fjS1M5CuUTfB7DHvOBl5DFEmP/lZ4L2B0IZfznhYwREuPuON0RwGakO6H8Nh2OdbII4HfrdgXdRjR23zE00gWOT+CeUPKOyBIiadPxZPy0b8THCQBwSn2GSLm9gPgAq3ftVrWjXaZO14yXAUDO6FTIg773nza+e9Fvc4px+1GywRKyY0XuvM7mQKROIKvSm6vlC+Ig4PsA05ZAPaPkF8cVQriVLE6QKYqqFqG/xTfK80Zr1mAmAFR+4G2tfLLOHKhKNIYlRObaregl3+bWYOAzRSuSuY3cKyqfS4eRfOiHYngcdWUsvTj+7CPYpA4+3RPpFalbkkkbGhKGO2ps=
-          if_key_exists: replace
-          passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
-
-      - name: Deploy to Ubuntu Server
-        env:
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_HOST: 107.174.221.212
-        run: |
-          # Create directories
-          ssh $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ~/projectnexus/{backend,frontend/.next}"
-          
-          # Copy artifacts
-          scp backend/projectnexus-api $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/backend/
-          scp -r frontend/.next/* $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/.next/
-          scp frontend/package*.json $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/
-          
-          # Deploy
-          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          script: |
             set -e
+            echo "Creating project directories..."
+            mkdir -p ~/projectnexus/{backend,frontend/.next}
+            
+            echo "Copying backend files..."
+            cp backend-build/projectnexus-api ~/projectnexus/backend/
             chmod +x ~/projectnexus/backend/projectnexus-api
+            
+            echo "Copying frontend files..."
+            cp -r frontend-build/.next/* ~/projectnexus/frontend/.next/
+            cp frontend-build/package*.json ~/projectnexus/frontend/
+            
+            echo "Installing frontend dependencies..."
             cd ~/projectnexus/frontend
             npm ci --production
-          
-            # Update environment
+            
+            echo "Updating environment variables..."
             echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env
-          
-            # Restart services
+            
+            echo "Restarting services..."
             cd ~/projectnexus
             docker compose down
             docker compose build --no-cache
             docker compose up -d
-          EOF
