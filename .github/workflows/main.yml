@@ -12,14 +12,14 @@ jobs:
     
     services:
       mongodb:
-        image: mongo:latest
+        image: mongo:7
         env:
           MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: your_secure_password
+          MONGO_INITDB_ROOT_PASSWORD: lXC2L98i91dlythSizdYiB0QNQl36E+uPqFN5QhdHzY=
         ports:
           - 27017:27017
         options: >-
-          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:your_secure_password@localhost:27017/admin --quiet"
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:lXC2L98i91dlythSizdYiB0QNQl36E+uPqFN5QhdHzY=@localhost:27017/admin --quiet"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -39,7 +39,7 @@ jobs:
         go mod download
         go test ./... -v
       env:
-        MONGODB_URI: mongodb://root:your_secure_password@localhost:27017/projectnexus?authSource=admin
+        MONGODB_URI: mongodb://root:lXC2L98i91dlythSizdYiB0QNQl36E+uPqFN5QhdHzY=@localhost:27017/projectnexus?authSource=admin
 
     # Frontend tests
     - name: Set up Node.js
