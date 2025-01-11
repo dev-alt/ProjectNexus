@@ -19,7 +19,7 @@ jobs:
         ports:
           - 27017:27017
         options: >-
-          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:mongodbpass@localhost:27017/admin --quiet"
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}@localhost:27017/admin --quiet"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -39,7 +39,7 @@ jobs:
         go mod download
         go test ./... -v
       env:
-        MONGODB_URI: mongodb://root:mongodbpass@localhost:27017/projectnexus?authSource=admin
+        MONGODB_URI: mongodb://root:${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}@localhost:27017/projectnexus?authSource=admin
 
     # Frontend tests
     - name: Set up Node.js
