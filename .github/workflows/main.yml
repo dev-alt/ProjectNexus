@@ -39,10 +39,10 @@ jobs:
         run: docker save -o backend.tar projectnexus-backend:latest
 
       - name: Set up SSH agent with passphrase-protected key
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-          ssh-passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}  # Add the passphrase here
+        run: |
+          # Install ssh-agent and add the private key
+          eval "$(ssh-agent -s)"
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" | ssh-add -
 
       - name: Add server to known hosts
         run: |
