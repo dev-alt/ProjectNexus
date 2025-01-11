@@ -87,14 +87,21 @@ jobs:
       run: |
         npm ci
         npm run build
-
+        
+    - name: List Files (Debug)
+      run: |
+        echo "Files in the repository root:"
+        ls -al
+        echo "Files in the frontend directory:"
+        ls -al ./frontend
+        
     # Upload artifacts
     - name: Upload Backend Artifact
       uses: actions/upload-artifact@v4
       with:
         name: backend-build
         path: backend/projectnexus-api
-        
+
     - name: Upload Frontend Artifact
       uses: actions/upload-artifact@v4
       with:
