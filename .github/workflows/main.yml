@@ -19,7 +19,7 @@ jobs:
         ports:
           - 27017:27017
         options: >-
-          --health-cmd mongosh --eval "db.adminCommand('ping')"
+          --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:mongodbpass@localhost:27017/admin --quiet"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -139,12 +139,14 @@ jobs:
           # Frontend deployment
           mkdir -p ~/projectnexus/frontend/.next
           cp -r frontend-build/* ~/projectnexus/frontend/.next/
-          
-          # Update environment variables
-          echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" > ~/projectnexus/backend/.env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> ~/projectnexus/backend/.env
-          echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > ~/projectnexus/frontend/.env
-          
-          # Restart services
+
+          # Update environment variables in systemd service files (example for projectnexus-api.service)
+          # Replace "your_mongodb_uri", "your_jwt_secret", etc. with actual values or secrets
+          sudo sed -i 's/your_mongodb_uri/${{ secrets.MONGODB_URI }}/g' /etc/systemd/system/projectnexus-api.service
+          sudo sed -i 's/your_jwt_secret/${{ secrets.JWT_SECRET }}/g' /etc/systemd/system/projectnexus-api.service
+          sudo sed -i 's/your_next_public_api_url/${{ secrets.NEXT_PUBLIC_API_URL }}/g' /etc/systemd/system/projectnexus-frontend.service
+
+          # Reload systemd and restart services
+          sudo systemctl daemon-reload
           sudo systemctl start projectnexus-api
           sudo systemctl start projectnexus-frontend
