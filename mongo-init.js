@@ -1,22 +1,22 @@
 ﻿db = db.getSiblingDB('admin');
 
-// Create an admin user (do this only once, and only if necessary)
-// If you are always creating the root user on startup, you don't need this
+// Create admin user
 db.createUser({
-    user: "admin",
-    pwd: "lXC2L98i91dlythSizdYiB0QNQl36E+uPqFN5QhdHzY=", // Set a strong password for the admin user
-    roles: [
-        { role: "userAdminAnyDatabase", db: "admin" }
-    ]
+    user: process.env.MONGO_ADMIN_USER,
+    pwd: process.env.MONGO_ADMIN_PASSWORD,
+    roles: [{ role: "userAdminAnyDatabase", db: "admin" }]
 });
 
 db = db.getSiblingDB('projectnexus');
 
-// Create an application-specific user with limited privileges
+// Create application user with limited privileges
 db.createUser({
-    user: "projectnexus_user",
-    pwd: "lXC2L98i91dlythSizdYiB0QNQl36E+uPqFN5QhdHzY=", // *** Use the newly generated password here ***
-    roles: [
-        { role: "readWrite", db: "projectnexus" }
-    ]
+    user: process.env.MONGO_APP_USER,
+    pwd: process.env.MONGO_APP_PASSWORD,
+    roles: [{ role: "readWrite", db: "projectnexus" }]
 });
+
+// Create indexes for better performance
+db.users.createIndex({ "email": 1 }, { unique: true });
+db.projects.createIndex({ "created_by": 1 });
+db.documents.createIndex({ "project_id": 1 });

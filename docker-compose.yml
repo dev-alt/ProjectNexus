@@ -1,69 +1,52 @@
-﻿services:
-  frontend-dev:
-    image: node:18-alpine
-    command: sh -c "npm install && npm run dev"
-    working_dir: /app
+﻿version: '3.8'
+
+services:
+  frontend:
+    image: ${DOCKER_USERNAME}/projectnexus-frontend:latest
     ports:
       - "3050:3050"
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend-dev:8085/api/v1
-      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NODE_ENV=production
       - PORT=3050
       - HOSTNAME=0.0.0.0
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     networks:
-      - projectnexus-network-dev
+      - projectnexus-network
+    restart: unless-stopped
 
-  backend-dev:
-    image: golang:1.23.4-alpine
-    command: sh -c "go mod tidy && go run cmd/api/main.go"
-    working_dir: /app
+  backend:
+    image: ${DOCKER_USERNAME}/projectnexus-backend:latest
     ports:
       - "8085:8085"
     environment:
-      - MONGODB_URI=mongodb://root:mongodbpass@mongodb:27017/projectnexus?authSource=admin
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
-      - JWT_SECRET=your-secret-key-here
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
       - PORT=8085
-      - GIN_MODE=debug
-    volumes:
-      - ./backend:/app
+      - GIN_MODE=release
     depends_on:
       - mongodb
     networks:
-      - projectnexus-network-dev
+      - projectnexus-network
+    restart: unless-stopped
 
   mongodb:
     image: mongo:latest
     ports:
       - "27017:27017"
-    volumes:
-      - mongodb_data_dev:/data/db
-    networks:
-      - projectnexus-network-dev
-
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - "8081:8081"
     environment:
-      - ME_CONFIG_MONGODB_SERVER=mongodb
-      - ME_CONFIG_MONGODB_PORT=27017
-      - ME_CONFIG_MONGODB_ADMINUSERNAME=root
-      - ME_CONFIG_MONGODB_ADMINPASSWORD=${MONGO_INITDB_ROOT_PASSWORD} # Use the same password as for mongodb
-      - ME_CONFIG_MONGODB_URL=mongodb://root:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/projectnexus?authSource=admin
-    depends_on:
-      - mongodb
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
-      - projectnexus-network-dev
+      - projectnexus-network
+    restart: unless-stopped
 
 networks:
-  projectnexus-network-dev:
+  projectnexus-network:
     driver: bridge
 
 volumes:
-  mongodb_data_dev:
+  mongodb_data:
+    driver: local
