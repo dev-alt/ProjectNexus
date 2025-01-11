@@ -56,9 +56,10 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
-          # Transfer Docker images to the server
+          # Transfer Docker images and docker-compose.yml to the server
           scp -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
           scp -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
+          scp -o StrictHostKeyChecking=no docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:~/docker-compose.yml
 
           # SSH into the server and deploy
           ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
@@ -67,12 +68,12 @@ jobs:
           docker load -i ~/backend.tar
 
           # Stop and remove existing containers
-          docker-compose down
+          docker-compose -f ~/docker-compose.yml down
 
           # Start the services
-          docker-compose up -d
+          docker-compose -f ~/docker-compose.yml up -d
 
           # Clean up unused images and tar files
           docker image prune -f
-          rm ~/frontend.tar ~/backend.tar
+          rm ~/frontend.tar ~/backend.tar ~/docker-compose.yml
           EOF
