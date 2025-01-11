@@ -142,21 +142,28 @@ jobs:
           sudo systemctl stop projectnexus-api
           sudo systemctl stop projectnexus-frontend
           
+          # Debug: List files to verify paths
+          echo "Contents of backend-build:"
+          ls -al backend-build
+          
+          echo "Contents of frontend-build:"
+          ls -al frontend-build
+          
           # Backend deployment
           mkdir -p ~/projectnexus/backend
           cp backend-build/projectnexus-api ~/projectnexus/backend/
           chmod +x ~/projectnexus/backend/projectnexus-api
           
           # Frontend deployment
-          mkdir -p ~/projectnexus/frontend/.next
+          mkdir -p ~/projectnexus/frontend
           cp -r frontend-build/frontend/.next/ ~/projectnexus/frontend/.next/
-
-          # Update environment variables in systemd service files (example for projectnexus-api.service)
-          # Replace "your_mongodb_uri", "your_jwt_secret", etc. with actual values or secrets
-          sudo sed -i 's/your_mongodb_uri/${{ secrets.MONGODB_URI }}/g' /etc/systemd/system/projectnexus-api.service
-          sudo sed -i 's/your_jwt_secret/${{ secrets.JWT_SECRET }}/g' /etc/systemd/system/projectnexus-api.service
-          sudo sed -i 's/your_next_public_api_url/${{ secrets.NEXT_PUBLIC_API_URL }}/g' /etc/systemd/system/projectnexus-frontend.service
-
+          
+          # Update environment variables in systemd service files
+          # Using a different delimiter (#) for sed
+          sudo sed -i "s#your_mongodb_uri#${{ secrets.MONGODB_URI }}#g" /etc/systemd/system/projectnexus-api.service
+          sudo sed -i "s#your_jwt_secret#${{ secrets.JWT_SECRET }}#g" /etc/systemd/system/projectnexus-api.service
+          sudo sed -i "s#your_next_public_api_url#${{ secrets.NEXT_PUBLIC_API_URL }}#g" /etc/systemd/system/projectnexus-frontend.service
+          
           # Reload systemd and restart services
           sudo systemctl daemon-reload
           sudo systemctl start projectnexus-api
