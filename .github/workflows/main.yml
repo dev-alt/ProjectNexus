@@ -9,18 +9,21 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
+  
     services:
       mongodb:
         image: mongo:7
         env:
           MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: your_password # Hardcode a simple password for now, like "testpassword"
+          MONGO_INITDB_ROOT_PASSWORD: your_password # Hardcode simple password for testing
         ports:
           - 27017:27017
-        # Just checking if it starts
-        options: --health-cmd "echo 'db.runCommand(\"ping\").ok' | mongo mongodb://root:your_password@localhost:27017/admin --quiet" --health-interval 5s --health-timeout 2s --health-retries 10
-
+        options: >-
+          --health-cmd "mongosh --eval 'db.runCommand({ping: 1}).ok' --quiet"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 5
+          
     steps:
       - uses: actions/checkout@v4
       
