@@ -38,12 +38,15 @@ jobs:
       - name: Save backend image as tar archive
         run: docker save -o backend.tar projectnexus-backend:latest
 
-      - name: Install SSH key with passphrase
-        uses: shimataro/ssh-key-action@v2
+      - name: Set up SSH agent with passphrase-protected key
+        uses: webfactory/ssh-agent@v0.7.0
         with:
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
-          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}  # Add the passphrase here
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          ssh-passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}  # Add the passphrase here
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy to server
         env:
@@ -55,11 +58,11 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           # Transfer Docker images to the server
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
-          scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
+          scp -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
+          scp -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
 
           # SSH into the server and deploy
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
           # Load Docker images
           docker load -i ~/frontend.tar
           docker load -i ~/backend.tar
