@@ -13,7 +13,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV NEXT_PUBLIC_API_URL=http://backend:8085/api/v1
+ENV NEXT_PUBLIC_API_URL=http://backend:8085
 RUN npm run build
 
 # Production image, copy all the files and run next
@@ -22,7 +22,7 @@ WORKDIR /app
 
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
-ENV NEXT_PUBLIC_API_URL=http://backend:8085/api/v1
+ENV NEXT_PUBLIC_API_URL=http://backend:8085
 ENV PORT 3050
 ENV HOSTNAME "0.0.0.0"
 
