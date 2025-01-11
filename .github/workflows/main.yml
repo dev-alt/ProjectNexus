@@ -106,8 +106,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: frontend-build
-        path: frontend/.next
-        working-directory: ./frontend
+        path: frontend-build
         
   deploy:
     needs: build
