@@ -84,9 +84,7 @@ jobs:
         
     - name: Build Frontend
       working-directory: ./frontend
-      run: |
-        npm ci
-        npm run build
+      run: npm run build
 
     # Upload artifacts
     - name: Upload Backend Artifact
