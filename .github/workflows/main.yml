@@ -114,57 +114,59 @@ jobs:
     if: github.ref == 'refs/heads/main'
     
     steps:
-    - uses: actions/checkout@v4
-    
-    # Download artifacts
-    - name: Download Backend Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: backend-build
-        path: backend-build
-        
-    - name: Download Frontend Artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: frontend-build
-        path: ./frontend-build
-        
-    # Deploy to Ubuntu server
-    - name: Deploy to Ubuntu Server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.DEPLOY_HOST }}
-        username: ${{ secrets.DEPLOY_USER }}
-        key: ${{ secrets.DEPLOY_SSH_KEY }}
-        passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-        script: |
-          # Stop existing services
-          sudo systemctl stop projectnexus-api
-          sudo systemctl stop projectnexus-frontend
-          
-          # Debug: List files to verify paths
-          echo "Contents of backend-build:"
-          ls -al backend-build
-          
-          echo "Contents of frontend-build:"
-          ls -al frontend-build
-          
-          # Backend deployment
-          mkdir -p ~/projectnexus/backend
-          cp backend-build/projectnexus-api ~/projectnexus/backend/
-          chmod +x ~/projectnexus/backend/projectnexus-api
-          
-          # Frontend deployment
-          mkdir -p ~/projectnexus/frontend
-          cp -r frontend-build/frontend/.next/ ~/projectnexus/frontend/.next/
-          
-          # Update environment variables in systemd service files
-          # Using a different delimiter (#) for sed
-          sudo sed -i "s#your_mongodb_uri#${{ secrets.MONGODB_URI }}#g" /etc/systemd/system/projectnexus-api.service
-          sudo sed -i "s#your_jwt_secret#${{ secrets.JWT_SECRET }}#g" /etc/systemd/system/projectnexus-api.service
-          sudo sed -i "s#your_next_public_api_url#${{ secrets.NEXT_PUBLIC_API_URL }}#g" /etc/systemd/system/projectnexus-frontend.service
-          
-          # Reload systemd and restart services
-          sudo systemctl daemon-reload
-          sudo systemctl start projectnexus-api
-          sudo systemctl start projectnexus-frontend
+      - uses: actions/checkout@v4
+  
+      - name: Download Backend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: backend-build
+  
+      - name: Download Frontend Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend-build
+  
+      - name: Deploy to Ubuntu Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
+          script: |
+            # Stop existing services
+            sudo systemctl stop projectnexus-api
+            sudo systemctl stop projectnexus-frontend
+  
+            # --- Backend Deployment ---
+  
+            # Create directory on the server
+            ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/backend"
+  
+            # Copy backend artifact to server
+            scp backend-build/projectnexus-api ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/backend/
+  
+            # Set execute permissions on the server
+            ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "chmod +x ~/projectnexus/backend/projectnexus-api"
+  
+            # --- Frontend Deployment ---
+  
+            # Create directory on the server
+            ssh ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/frontend/.next"
+  
+            # Copy frontend artifact to server
+            scp -r frontend-build/frontend/.next ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/.next
+  
+            # --- Update systemd Config ---
+  
+            # Update environment variables in systemd service files
+            sudo sed -i "s#your_mongodb_uri#${{ secrets.MONGODB_URI }}#g" /etc/systemd/system/projectnexus-api.service
+            sudo sed -i "s#your_jwt_secret#${{ secrets.JWT_SECRET }}#g" /etc/systemd/system/projectnexus-api.service
+            sudo sed -i "s#your_next_public_api_url#${{ secrets.NEXT_PUBLIC_API_URL }}#g" /etc/systemd/system/projectnexus-frontend.service
+  
+            # Reload systemd and restart services
+            sudo systemctl daemon-reload
+            sudo systemctl start projectnexus-api
+            sudo systemctl start projectnexus-frontend
