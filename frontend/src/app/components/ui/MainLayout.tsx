@@ -15,6 +15,7 @@ const MainNav = () => {
         { href: '/projects', label: 'Projects', icon: Layout },
         { href: '/documents', label: 'Documents', icon: FileText },
         { href: '/mockups', label: 'Mockups', icon: FileText },
+        { href: '/present', label: 'Present', icon: FileText },
         { href: '/team', label: 'Team', icon: Users },
         { href: '/settings', label: 'Settings', icon: Settings },
     ];
