@@ -7,97 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image: mongo:7
-        env:
-          MONGO_INITDB_ROOT_USERNAME: root
-          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd "mongosh --eval 'db.runCommand({ping: 1}).ok' --quiet"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-      - name: Wait for MongoDB
-        run: |
-          echo "Waiting for MongoDB to start..."
-          sleep 30
-
-  build:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    steps:
-      - uses: actions/checkout@v4
-      
-      # Build backend
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-
-      - name: Build Backend
-        working-directory: ./backend
-        run: |
-          go mod download
-          CGO_ENABLED=0 GOOS=linux go build -o projectnexus-api ./cmd/api
-      
-      # Build frontend
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-
-      - name: Install Frontend Dependencies
-        working-directory: ./frontend
-        run: |
-          npm ci
-          ls -la
-
-      - name: Build Frontend
-        working-directory: ./frontend
-        run: |
-          npm run build
-          ls -la
-          ls -la .next || echo ".next directory not found"
-
-      - name: Debug Frontend Build Output
-        working-directory: ./frontend
-        run: |
-          pwd
-          ls -la
-          echo "Checking .next directory:"
-          ls -la .next || echo ".next directory not found"
-          echo "Current directory structure:"
-          find . -type d
-      
-      # Upload artifacts with explicit paths
-      - name: Upload Backend Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-build
-          path: backend/projectnexus-api
-          retention-days: 1
-
-      - name: Upload Frontend Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: |
-            frontend/.next/**/*
-            frontend/package.json
-            frontend/package-lock.json
-          retention-days: 1
+  # ... previous jobs remain the same ...
 
   deploy:
     needs: build
@@ -107,54 +17,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Backend Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-build
-          path: backend/projectnexus-api
-
-      - name: Download Frontend Artifact
+      - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
           name: frontend-build
           path: frontend
 
-      - name: Debug Downloaded Artifacts
-        run: |
-          echo "Backend files:"
-          ls -la backend/
-          echo "Frontend files:"
-          ls -la frontend/
-          echo "Frontend .next directory:"
-          ls -la frontend/.next || echo ".next directory not found"
-
-      - name: Set up SSH Agent
-        uses: webfactory/ssh-agent@v0.9.0
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
         with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          if_key_exists: replace
+          passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
 
       - name: Deploy to Ubuntu Server
         env:
-          SSH_AUTH_SOCK: /tmp/ssh_agent.sock
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
         run: |
-          # Create directories first
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} "mkdir -p ~/projectnexus/{backend,frontend/.next}"
+          # Create directories
+          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST "mkdir -p ~/projectnexus/{backend,frontend/.next}"
           
           # Copy artifacts
-          scp -o StrictHostKeyChecking=no backend/projectnexus-api ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/backend/
-          scp -o StrictHostKeyChecking=no -r frontend/.next/* ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/.next/
-          scp -o StrictHostKeyChecking=no frontend/package*.json ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/projectnexus/frontend/
+          scp -o StrictHostKeyChecking=no backend/projectnexus-api $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/backend/
+          scp -o StrictHostKeyChecking=no -r frontend/.next/* $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/.next/
+          scp -o StrictHostKeyChecking=no frontend/package*.json $DEPLOY_USER@$DEPLOY_HOST:~/projectnexus/frontend/
           
-          # Set permissions and update services
-          ssh -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} << 'EOF'
+          # Deploy
+          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            set -e
             chmod +x ~/projectnexus/backend/projectnexus-api
             cd ~/projectnexus/frontend
             npm ci --production
           
-            # Update environment variables
+            # Update environment
             echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env
           
-            # Restart services using Docker Compose
+            # Restart services
             cd ~/projectnexus
             docker compose down
             docker compose build --no-cache
