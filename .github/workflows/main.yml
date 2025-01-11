@@ -66,24 +66,27 @@ jobs:
           ls -la
           ls -la .next || echo ".next directory not found"
       
-      # Upload artifacts
-      - name: Upload Backend Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-build
-          path: backend/projectnexus-api
-          retention-days: 1
+      # Package all deployment files
+      - name: Prepare Deployment Package
+        run: |
+          mkdir -p deploy
+          # Copy backend files
+          cp backend/projectnexus-api deploy/
+          # Copy frontend files
+          cp -r frontend/.next deploy/ || true
+          cp frontend/package*.json deploy/
+          # Copy Docker files
+          cp docker-compose*.yml deploy/
+          cp Dockerfile* deploy/ || true
+          # Create archive
+          tar -czf deploy.tar.gz deploy/
 
-      - name: Upload Frontend Artifact
+      # Upload deployment package
+      - name: Upload Deployment Package
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-build
-          path: |
-            frontend/.next/**/*
-            frontend/package.json
-            frontend/package-lock.json
-            docker-compose.yml
-            docker-compose.dev.yml
+          name: deploy-package
+          path: deploy.tar.gz
           retention-days: 1
 
   deploy:
@@ -92,29 +95,16 @@ jobs:
     if: github.ref == 'refs/heads/main'
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Download Backend Artifact
+      - name: Download Deployment Package
         uses: actions/download-artifact@v4
         with:
-          name: backend-build
-          path: ./backend-build
+          name: deploy-package
+          path: .
 
-      - name: Download Frontend Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-build
-          path: ./frontend-build
-
-      - name: Debug Local Files
+      - name: Extract Package
         run: |
-          pwd
-          echo "Current directory structure:"
-          find . -type f
-          echo "Backend files:"
-          ls -la backend-build/
-          echo "Frontend files:"
-          ls -la frontend-build/
+          tar -xzf deploy.tar.gz
+          ls -la deploy/
 
       - name: Deploy to Server
         uses: appleboy/scp-action@v0.1.7
@@ -123,8 +113,8 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          source: "backend-build/projectnexus-api,frontend-build/,docker-compose*.yml"
-          target: "~/projectnexus/temp/"
+          source: "deploy/*"
+          target: "~/projectnexus/"
           strip_components: 1
 
       - name: Setup and Start Services
@@ -134,41 +124,40 @@ jobs:
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           passphrase: ${{ secrets.DEPLOY_SSH_PASSPHRASE }}
-          command_timeout: "20m"
+          envs: MONGODB_URI,MONGO_INITDB_ROOT_PASSWORD,JWT_SECRET,NEXT_PUBLIC_API_URL
+          environment: |
+            MONGODB_URI=${{ secrets.MONGODB_URI }}
+            MONGO_INITDB_ROOT_PASSWORD=${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
           script: |
-            echo "Setting up project structure..."
-            mkdir -p ~/projectnexus/{backend,frontend}
-            
-            echo "Moving backend files..."
-            cp ~/projectnexus/temp/projectnexus-api ~/projectnexus/backend/
-            chmod +x ~/projectnexus/backend/projectnexus-api
-            
-            echo "Moving frontend files..."
-            if [ -d ~/projectnexus/temp/.next ]; then
-              cp -r ~/projectnexus/temp/.next ~/projectnexus/frontend/
-            else
-              echo "Warning: .next directory not found"
-              ls -la ~/projectnexus/temp/
-            fi
-            
-            cp ~/projectnexus/temp/package*.json ~/projectnexus/frontend/
-            cp ~/projectnexus/temp/docker-compose*.yml ~/projectnexus/
-            
-            echo "Installing frontend dependencies..."
-            cd ~/projectnexus/frontend
-            npm ci --production
-            
-            echo "Updating environment variables..."
-            echo "NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}" > .env
-            
-            echo "Copying Docker files..."
+            echo "Setting up environment..."
             cd ~/projectnexus
+            
+            # Create environment file for Docker Compose
+            cat > .env << EOL
+            MONGODB_URI=${MONGODB_URI}
+            MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+            JWT_SECRET=${JWT_SECRET}
+            NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+            EOL
+            
+            echo "Setting up project structure..."
+            mkdir -p backend frontend/.next
             chmod +x backend/projectnexus-api
             
-            echo "Checking Docker Compose files..."
-            ls -la docker-compose*.yml
+            echo "Installing frontend dependencies..."
+            cd frontend
+            npm ci --production
+            echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" > .env
             
-            echo "Starting services..."
-            docker compose -f docker-compose.yml -f docker-compose.dev.yml down || true
+            echo "Starting services with dev configuration..."
+            cd ..
+            docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+            echo "Building services..."
             docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache
+            echo "Starting services..."
             docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+            
+            echo "Deployment complete. Checking service status..."
+            docker compose ps
