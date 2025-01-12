@@ -1,40 +1,121 @@
 // app/page.tsx
-import React from 'react';
-import { FileText, Users, Clock, Award } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+'use client';
 
-const statsCards = [
+import { DashboardStats } from '@/components/dashboard/DashboardStats';
+import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
+import { QuickActions } from '@/components/dashboard/QuickActions';
+import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
+import { useRouter } from 'next/navigation';
+import { StatsCard, Activity, QuickAction, ProjectSummary } from '@/types/dashboard';
+import { FileText, Users, Clock, Award, Plus, UserPlus, FileText as FileTextIcon } from 'lucide-react';
+
+const statsCards: StatsCard[] = [
   {
     title: 'Active Projects',
     value: '12',
     description: 'Projects in progress',
     icon: FileText,
-    trend: '+2 this week'
+    trend: '+2 this week',
+    trendDirection: 'up'
   },
   {
     title: 'Team Members',
     value: '24',
     description: 'Across all projects',
     icon: Users,
-    trend: '+3 this month'
+    trend: '+3 this month',
+    trendDirection: 'up'
   },
   {
     title: 'Recent Updates',
     value: '48',
     description: 'In the last 7 days',
     icon: Clock,
-    trend: '15% increase'
+    trend: '15% increase',
+    trendDirection: 'up'
   },
   {
     title: 'Completed Projects',
     value: '32',
     description: 'Successfully delivered',
     icon: Award,
-    trend: '+5 this quarter'
+    trend: '+5 this quarter',
+    trendDirection: 'up'
+  }
+];
+
+const recentActivity: Activity[] = [
+  {
+    id: 1,
+    action: "Updated high-level design document",
+    project: "E-commerce Platform",
+    time: "2 hours ago",
+    user: "Alex Morrison",
+    type: 'document'
+  },
+  {
+    id: 2,
+    action: "Created new project",
+    project: "Mobile App Redesign",
+    time: "5 hours ago",
+    user: "Sarah Chen",
+    type: 'project'
+  },
+  {
+    id: 3,
+    action: "Added team member",
+    project: "API Integration",
+    time: "1 day ago",
+    user: "Michael Scott",
+    type: 'team'
+  }
+];
+
+const projectSummaries: ProjectSummary[] =  [
+  {
+    label: "Active Projects",
+    value: "12 total",
+    trendValue: "+2",
+    trendLabel: "from last month"
+  },
+  {
+    label: "Pending Reviews",
+    value: "5 documents",
+    trendValue: "-1",
+    trendLabel: "from last week"
+  },
+  {
+    label: "Upcoming Deadlines",
+    value: "3 this week",
+    trendValue: "+1",
+    trendLabel: "from last week"
   }
 ];
 
 export default function Home() {
+  const router = useRouter();
+
+  const quickActions: QuickAction[] = [
+    {
+      label: "Create New Project",
+      icon: Plus,
+      onClick: () => router.push('/projects/new'),
+      variant: 'primary' as const
+    },
+    {
+      label: "Add Team Member",
+      icon: UserPlus,
+      onClick: () => router.push('/team'),
+      variant: 'secondary' as const
+    },
+    {
+      label: "Start Documentation",
+      icon: FileTextIcon,
+      onClick: () => router.push('/documents/new'),
+      variant: 'secondary' as const
+    }
+  ];
+
   return (
       <div className="space-y-6">
         {/* Welcome Section */}
@@ -46,110 +127,19 @@ export default function Home() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statsCards.map((card) => {
-            const Icon = card.icon;
-            return (
-                <Card key={card.title}>
-                  <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-500">
-                      {card.title}
-                    </CardTitle>
-                    <Icon className="w-4 h-4 text-gray-500" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{card.value}</div>
-                    <p className="text-xs text-gray-600 mt-1">{card.description}</p>
-                    <div className="text-xs text-green-600 mt-2">{card.trend}</div>
-                  </CardContent>
-                </Card>
-            );
-          })}
-        </div>
+        <DashboardStats cards={statsCards} />
 
-        {/* Recent Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  action: "Documentation updated",
-                  project: "E-commerce Platform",
-                  time: "2 hours ago",
-                  user: "Alex Morrison"
-                },
-                {
-                  action: "New project created",
-                  project: "Mobile App Redesign",
-                  time: "5 hours ago",
-                  user: "Sarah Chen"
-                },
-                {
-                  action: "Team member added",
-                  project: "API Integration",
-                  time: "1 day ago",
-                  user: "Michael Scott"
-                }
-              ].map((activity, i) => (
-                  <div key={i} className="flex items-center justify-between py-3">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{activity.action}</p>
-                      <p className="text-sm text-gray-500">{activity.project}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">{activity.time}</p>
-                      <p className="text-sm text-gray-900">{activity.user}</p>
-                    </div>
-                  </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Activity Feed */}
+          <ActivityFeed activities={recentActivity} />
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <button className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                Create New Project
-              </button>
-              <button className="w-full bg-gray-100 text-gray-900 px-4 py-2 rounded-lg hover:bg-gray-200">
-                Browse Documents
-              </button>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* Project Overview */}
+            <ProjectOverview summaries={projectSummaries} />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Getting Started</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-3">
-                <li className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
-                  Create your first project
-                </li>
-                <li className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
-                  Set up your team members
-                </li>
-                <li className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
-                  Start documenting your plans
-                </li>
-                <li className="flex items-center text-sm text-gray-600">
-                  <div className="w-2 h-2 bg-blue-600 rounded-full mr-2"></div>
-                  Explore AI-powered suggestions
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
+            {/* Quick Actions */}
+            <QuickActions actions={quickActions} />
+          </div>
         </div>
       </div>
   );
