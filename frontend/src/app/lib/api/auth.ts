@@ -23,7 +23,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8085';
 
 export const authApi = {
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+        const response = await fetch(`${API_URL}/v1/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -40,7 +40,7 @@ export const authApi = {
     },
 
     async register(data: RegisterData): Promise<AuthResponse> {
-        const response = await fetch(`${API_URL}/api/v1/auth/register`, {
+        const response = await fetch(`${API_URL}/v1/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ export const authApi = {
     },
 
     async getCurrentUser(): Promise<AuthResponse['user']> {
-        const response = await fetch(`${API_URL}/api/v1/users/me`, {
+        const response = await fetch(`${API_URL}/v1/users/me`, {
             credentials: 'include', // Important for cookies
         });
 
@@ -70,7 +70,7 @@ export const authApi = {
     },
 
     async logout(): Promise<void> {
-        const response = await fetch(`${API_URL}/api/v1/auth/logout`, {
+        const response = await fetch(`${API_URL}/v1/auth/logout`, {
             method: 'POST',
         });
 
@@ -81,7 +81,7 @@ export const authApi = {
     },
 
     async refreshToken(): Promise<AuthResponse> {
-        const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+        const response = await fetch(`${API_URL}/v1/auth/refresh`, {
             method: 'POST',
         });
 
