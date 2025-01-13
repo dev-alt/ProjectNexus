@@ -1,15 +1,10 @@
-﻿// app/(auth)/layout.tsx
-'use client';
+﻿'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import AuthLoading from '@/components/auth/AuthLoading';
 import { useAuthRedirect } from '@/lib/hooks/useAuthRedirect';
 
-export default function AuthLayout({
-                                       children,
-                                   }: Readonly<{
-    children: React.ReactNode;
-}>) {
+function AuthLayoutContent({ children }: { children: React.ReactNode }) {
     // Use the useAuthRedirect hook to handle redirects
     const { loading } = useAuthRedirect();
 
@@ -28,5 +23,17 @@ export default function AuthLayout({
             </div>
             {children}
         </div>
+    );
+}
+
+export default function AuthLayout({
+                                       children,
+                                   }: Readonly<{
+    children: React.ReactNode;
+}>) {
+    return (
+        <Suspense fallback={<AuthLoading />}>
+            <AuthLayoutContent>{children}</AuthLayoutContent>
+        </Suspense>
     );
 }
