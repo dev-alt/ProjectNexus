@@ -56,11 +56,9 @@ export const authApi = {
         return response.json();
     },
 
-    async getCurrentUser(token: string): Promise<AuthResponse['user']> {
+    async getCurrentUser(): Promise<AuthResponse['user']> {
         const response = await fetch(`${API_URL}/api/v1/users/me`, {
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
+            credentials: 'include', // Important for cookies
         });
 
         if (!response.ok) {
@@ -70,4 +68,28 @@ export const authApi = {
 
         return response.json();
     },
+
+    async logout(): Promise<void> {
+        const response = await fetch(`${API_URL}/api/v1/auth/logout`, {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to logout');
+        }
+    },
+
+    async refreshToken(): Promise<AuthResponse> {
+        const response = await fetch(`${API_URL}/api/v1/auth/refresh`, {
+            method: 'POST',
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to refresh token');
+        }
+
+        return response.json();
+    }
 };

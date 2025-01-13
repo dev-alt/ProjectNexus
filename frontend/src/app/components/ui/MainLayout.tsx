@@ -11,7 +11,7 @@ const MainNav = () => {
     const pathname = usePathname();
 
     const navItems = [
-        { href: '/', label: 'Home', icon: Home },
+        { href: '/dashboard', label: 'Home', icon: Home },
         { href: '/projects', label: 'Projects', icon: Layout },
         { href: '/documents', label: 'Documents', icon: FileText },
         { href: '/mockups', label: 'Mockups', icon: FileText },

@@ -11,6 +11,8 @@ interface DocumentsGridProps {
 }
 
 export default function DocumentsGrid({ documents, onDocumentClick }: DocumentsGridProps) {
+    const defaultPreview = '/api/placeholder/400/200'; // Fallback image
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {documents.map((doc) => (
@@ -21,7 +23,7 @@ export default function DocumentsGrid({ documents, onDocumentClick }: DocumentsG
                 >
                     <div className="relative">
                         <Image
-                            src={doc.preview}
+                            src={doc.preview || defaultPreview}
                             alt={doc.title}
                             width={400}
                             height={200}
@@ -31,7 +33,7 @@ export default function DocumentsGrid({ documents, onDocumentClick }: DocumentsG
                             className="absolute top-2 right-2 p-1 bg-white rounded-full shadow-lg hover:bg-gray-100"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                window.open(doc.preview, '_blank');
+                                window.open(doc.preview || defaultPreview, '_blank');
                             }}
                         >
                             <ExternalLink className="h-4 w-4 text-gray-600" />

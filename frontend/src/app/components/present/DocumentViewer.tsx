@@ -15,6 +15,7 @@ interface DocumentViewerProps {
 export default function DocumentViewer({ item, onClose, onShare, onDownload }: DocumentViewerProps) {
     if (!item) return null;
 
+    const defaultPreview = '/api/placeholder/400/200'; // Fallback image
     const isDocument = 'lastModified' in item;
 
     return (
@@ -30,7 +31,7 @@ export default function DocumentViewer({ item, onClose, onShare, onDownload }: D
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => onShare()}
+                            onClick={onShare}
                             leftIcon={<Share2 className="h-4 w-4" />}
                         >
                             Share
@@ -46,7 +47,7 @@ export default function DocumentViewer({ item, onClose, onShare, onDownload }: D
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(item.preview, '_blank')}
+                            onClick={() => window.open(item.preview || defaultPreview, '_blank')}
                             leftIcon={<ExternalLink className="h-4 w-4" />}
                         >
                             Open
@@ -64,7 +65,7 @@ export default function DocumentViewer({ item, onClose, onShare, onDownload }: D
                 <div className="flex-1 overflow-y-auto p-4">
                     <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900">
                         <Image
-                            src={item.preview}
+                            src={item.preview || defaultPreview}
                             alt={item.title}
                             fill
                             className="object-contain"

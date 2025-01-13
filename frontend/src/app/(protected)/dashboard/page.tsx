@@ -1,13 +1,14 @@
-﻿// app/dashboard/page.tsx
+﻿// app/(protected)/dashboard/page.tsx
 'use client';
 
-import { FileText, Users, Clock, Award, Plus, UserPlus, FileText as FileTextIcon } from 'lucide-react';
+import { useAuth } from '@/lib/context/auth';
 import { DashboardStats } from '@/components/dashboard/DashboardStats';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ProjectOverview } from '@/components/dashboard/ProjectOverview';
 import { useRouter } from 'next/navigation';
 import { StatsCard, Activity, QuickAction, ProjectSummary } from '@/types/dashboard';
+import { FileText, Users, Clock, Award, Plus, UserPlus, FileText as FileTextIcon } from 'lucide-react';
 
 const statsCards: StatsCard[] = [
     {
@@ -71,7 +72,7 @@ const recentActivity: Activity[] = [
     }
 ];
 
-const projectSummaries: ProjectSummary[] =  [
+const projectSummaries: ProjectSummary[] = [
     {
         label: "Active Projects",
         value: "12 total",
@@ -92,9 +93,9 @@ const projectSummaries: ProjectSummary[] =  [
     }
 ];
 
-
 export default function DashboardPage() {
     const router = useRouter();
+    const { user } = useAuth();
 
     const quickActions: QuickAction[] = [
         {
@@ -116,10 +117,17 @@ export default function DashboardPage() {
             variant: 'secondary' as const
         }
     ];
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-semibold">Dashboard</h1>
+            {/* Welcome Section */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+                <h1 className="text-2xl font-semibold text-gray-900">
+                    Welcome back, {user?.name || 'User'}
+                </h1>
+                <p className="mt-2 text-gray-600">
+                    Your central hub for project planning and documentation. Start by creating a new project or continue working on existing ones.
+                </p>
             </div>
 
             {/* Stats Grid */}

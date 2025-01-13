@@ -11,7 +11,7 @@ export interface Document {
     type: string;
     title: string;
     lastModified: string;
-    preview?: string;
+    preview: string;
 }
 
 export interface Mockup {

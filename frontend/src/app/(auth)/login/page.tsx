@@ -1,7 +1,7 @@
 ﻿// app/(auth)/login/page.tsx
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/auth';
@@ -133,7 +133,7 @@ export default function LoginPage() {
 
                             <div className="text-sm">
                                 <Link
-                                    href="/forgot-password"
+                                    href="/"
                                     className="font-medium text-blue-600 hover:text-blue-500"
                                 >
                                     Forgot your password?
@@ -155,4 +155,4 @@ export default function LoginPage() {
             </div>
         </>
     );
-}   
+}
