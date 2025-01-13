@@ -2,74 +2,67 @@
 package routes
 
 import (
-    "github.com/gin-gonic/gin"
-    "go.mongodb.org/mongo-driver/mongo"
-    "projectnexus/internal/api/handlers"
-    "projectnexus/internal/middleware"
-    mongorepo "projectnexus/internal/repository/mongo"
-    "projectnexus/internal/services"
-    "projectnexus/internal/config"
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
+	"projectnexus/internal/api/handlers"
+	"projectnexus/internal/config"
+	"projectnexus/internal/middleware"
+	mongorepo "projectnexus/internal/repository/mongo"
+	"projectnexus/internal/services"
 )
 
 // SetupRouter initializes the router and registers all routes
-func SetupRouter(db *mongo.Database) *gin.Engine {
-    router := gin.Default()
+func SetupRouter(router *gin.Engine, db *mongo.Database) { // Changed return type and added router param
+	// Initialize repositories
+	userRepo := mongorepo.NewUserRepository(db)
 
-    // Initialize repositories
-    userRepo := mongorepo.NewUserRepository(db)
+	// Initialize services
+	config_ := config.Load()
+	authService := services.NewAuthService(userRepo, config_.JWTSecret)
 
-    // Initialize services
-    config := config.Load()
-    authService := services.NewAuthService(userRepo, config.JWTSecret)
+	// Initialize handlers
+	authHandler := handlers.NewAuthHandler(authService)
 
-    // Initialize handlers
-    authHandler := handlers.NewAuthHandler(authService)
+	// Health check
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"service": "projectnexus-api",
+		})
+	})
 
-    // Global middleware
-    router.Use(middleware.CORSMiddleware())
+	// API v1 routes
+	v1 := router.Group("/api/v1")
+	{
+		// Auth routes (public)
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+		}
 
-    // Health check
-    router.GET("/health", func(c *gin.Context) {
-        c.JSON(200, gin.H{
-            "status": "healthy",
-            "service": "projectnexus-api",
-        })
-    })
+		// Protected routes
+		protected := v1.Group("")
+		protected.Use(middleware.AuthMiddleware(authService))
+		{
+			// User routes
+			user := protected.Group("/users")
+			{
+				user.GET("/me", authHandler.GetMe)
+				// Add more user routes here
+			}
 
-    // API v1 routes
-    v1 := router.Group("/api/v1")
-    {
-        // Auth routes (public)
-        auth := v1.Group("/auth")
-        {
-            auth.POST("/register", authHandler.Register)
-            auth.POST("/login", authHandler.Login)
-        }
+			// Project routes
+			projects := protected.Group("/projects")
+			projects.GET("/", func(c *gin.Context) {
+				c.JSON(200, gin.H{"message": "Project endpoints coming soon"})
+			})
 
-        // Protected routes
-        protected := v1.Group("")
-        protected.Use(middleware.AuthMiddleware(authService))
-        {
-            // User routes
-            user := protected.Group("/users")
-            {
-                user.GET("/me", authHandler.GetMe)
-                // Add more user routes here
-            }
-
-            // Project routes (to be implemented)
-            projects := protected.Group("/projects")
-            projects.GET("/", func(c *gin.Context) {
-                c.JSON(200, gin.H{"message": "Project endpoints coming soon"})
-            })
-
-            // Document routes (to be implemented)
-            documents := protected.Group("/documents")
-            documents.GET("/", func(c *gin.Context) {
-                c.JSON(200, gin.H{"message": "Document endpoints coming soon"})
-            })
-        }
-    }
-
-    return router
+			// Document routes
+			documents := protected.Group("/documents")
+			documents.GET("/", func(c *gin.Context) {
+				c.JSON(200, gin.H{"message": "Document endpoints coming soon"})
+			})
+		}
+	}
 }

@@ -15,6 +15,8 @@
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - JWT_SECRET=${JWT_SECRET}
+      - GIN_MODE=release
+      - ALLOWED_ORIGINS=https://project.chillotters.xyz
     depends_on:
       - mongodb
     networks:
