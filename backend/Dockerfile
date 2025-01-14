@@ -1,17 +1,18 @@
-﻿# Backend Dockerfile
-FROM golang:1.23.4-alpine AS builder
+﻿FROM golang:1.23.4-alpine AS builder
 
 WORKDIR /app
 
-# Install git for private repos if needed
+# Install git (if needed for private repos)
 RUN apk add --no-cache git
 
-# Download dependencies
+# Download dependencies (cache this layer separately)
 COPY go.mod go.sum ./
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy only necessary Go source files and directories
+COPY cmd ./cmd
+COPY internal ./internal 
+# Add other directories containing your Go source code here
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/api
