@@ -42,7 +42,7 @@ export const authApi = {
     },
 
     async register(data: RegisterData): Promise<AuthResponse> {
-        const response = await fetch(`${API_URL}/v1/auth/register`, {
+        const response = await fetch(`${API_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ export const authApi = {
 
     async getCurrentUser(): Promise<AuthResponse['user']> {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/v1/users/me`, {
+        const response = await fetch(`${API_URL}/users/me`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ export const authApi = {
     async logout(): Promise<void> {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/v1/auth/logout`, {
+            const response = await fetch(`${API_URL}/auth/logout`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -99,7 +99,7 @@ export const authApi = {
 
     async refreshToken(): Promise<AuthResponse> {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/v1/auth/refresh`, {
+        const response = await fetch(`${API_URL}/auth/refresh`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
