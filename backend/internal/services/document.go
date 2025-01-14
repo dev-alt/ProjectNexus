@@ -1,8 +1,12 @@
-﻿// internal/services/document.go
+// Package services internal/services/document.go
 package services
 
 import (
 	"context"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"projectnexus/internal/errors"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
@@ -32,8 +36,26 @@ func NewDocumentService(documentRepo repository.DocumentRepository, projectRepo 
 
 // Helper function to check if user has access to project
 func (s *documentService) hasProjectAccess(ctx context.Context, projectID string, userID string) (bool, error) {
+	// Add debug logging
+	log.Printf("Checking project access - ProjectID: %s, UserID: %s", projectID, userID)
+
+	if projectID == "" {
+		return false, fmt.Errorf("project ID is empty")
+	}
+
+	if userID == "" {
+		return false, fmt.Errorf("user ID is empty")
+	}
+
+	// Validate ObjectID format
+	if _, err := primitive.ObjectIDFromHex(projectID); err != nil {
+		log.Printf("Invalid project ID format: %v", err)
+		return false, repository.ErrProjectNotFound
+	}
+
 	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
+		log.Printf("Error fetching project: %v", err)
 		return false, err
 	}
 
@@ -53,19 +75,31 @@ func (s *documentService) hasProjectAccess(ctx context.Context, projectID string
 
 // CreateDocument creates a new document
 func (s *documentService) CreateDocument(ctx context.Context, input models.CreateDocumentInput, userID string) (*models.Document, error) {
+	// Add input validation logging
+	log.Printf("Creating document - Input: %+v, UserID: %s", input, userID)
+
+	if userID == "" {
+		return nil, errors.ErrUnauthorized
+	}
+
+	// Validate input
+	if err := input.Validate(); err != nil {
+		log.Printf("Input validation failed: %v", err)
+		return nil, fmt.Errorf("invalid input: %w", err)
+	}
+
 	// Check project access
 	hasAccess, err := s.hasProjectAccess(ctx, input.ProjectID, userID)
 	if err != nil {
-		if err == repository.ErrNotFound {
+		if err == repository.ErrProjectNotFound {
 			return nil, errors.ErrProjectNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to check project access: %w", err)
 	}
 	if !hasAccess {
 		return nil, errors.ErrUnauthorized
 	}
 
-	// Create document
 	doc := &models.Document{
 		ProjectID: input.ProjectID,
 		Title:     input.Title,
@@ -76,7 +110,8 @@ func (s *documentService) CreateDocument(ctx context.Context, input models.Creat
 	}
 
 	if err := s.documentRepo.Create(ctx, doc); err != nil {
-		return nil, err
+		log.Printf("Error creating document: %v", err)
+		return nil, fmt.Errorf("failed to create document: %w", err)
 	}
 
 	return doc, nil
@@ -84,21 +119,50 @@ func (s *documentService) CreateDocument(ctx context.Context, input models.Creat
 
 // GetDocument retrieves a document by ID
 func (s *documentService) GetDocument(ctx context.Context, id string, userID string) (*models.Document, error) {
+	// Add logging
+	log.Printf("Getting document - ID: %s, UserID: %s", id, userID)
+
+	// Validate ObjectID format
+	if _, err := primitive.ObjectIDFromHex(id); err != nil {
+		log.Printf("Invalid document ID format: %v", err)
+		return nil, repository.ErrDocumentNotFound
+	}
+
 	doc, err := s.documentRepo.GetByID(ctx, id)
 	if err != nil {
-		if err == repository.ErrNotFound {
-			return nil, errors.ErrDocumentNotFound
+		if err == mongo.ErrNoDocuments {
+			log.Printf("Document not found: %s", id)
+			return nil, repository.ErrDocumentNotFound
 		}
+		log.Printf("Error fetching document: %v", err)
 		return nil, err
 	}
 
 	// Check project access
-	hasAccess, err := s.hasProjectAccess(ctx, doc.ProjectID, userID)
+	project, err := s.projectRepo.GetByID(ctx, doc.ProjectID)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			log.Printf("Project not found for document: %s", doc.ProjectID)
+			return nil, repository.ErrProjectNotFound
+		}
+		log.Printf("Error fetching project: %v", err)
 		return nil, err
 	}
+
+	// Check if user is project creator or team member
+	hasAccess := project.CreatedBy == userID
 	if !hasAccess {
-		return nil, errors.ErrUnauthorized
+		for _, memberID := range project.Team {
+			if memberID == userID {
+				hasAccess = true
+				break
+			}
+		}
+	}
+
+	if !hasAccess {
+		log.Printf("User %s not authorized to access document %s", userID, id)
+		return nil, repository.ErrUnauthorized
 	}
 
 	return doc, nil
@@ -106,8 +170,13 @@ func (s *documentService) GetDocument(ctx context.Context, id string, userID str
 
 // UpdateDocument updates a document
 func (s *documentService) UpdateDocument(ctx context.Context, id string, input models.UpdateDocumentInput, userID string) (*models.Document, error) {
+	// Add debug logging
+	log.Printf("Updating document - ID: %s, UserID: %s, Input: %+v", id, userID, input)
+
+	// Get existing document
 	doc, err := s.GetDocument(ctx, id, userID)
 	if err != nil {
+		log.Printf("Failed to get existing document: %v", err)
 		return nil, err
 	}
 
@@ -116,14 +185,21 @@ func (s *documentService) UpdateDocument(ctx context.Context, id string, input m
 		doc.Title = *input.Title
 	}
 	if input.Type != nil {
+		if !input.Type.IsValid() {
+			return nil, fmt.Errorf("invalid document type: %s", *input.Type)
+		}
 		doc.Type = *input.Type
 	}
 	if input.Content != nil {
 		doc.Content = *input.Content
 	}
 
+	// Ensure CreatedBy is still set
+	doc.CreatedBy = userID
+
 	if err := s.documentRepo.Update(ctx, doc); err != nil {
-		return nil, err
+		log.Printf("Failed to update document in repository: %v", err)
+		return nil, fmt.Errorf("failed to update document: %w", err)
 	}
 
 	return doc, nil
@@ -171,18 +247,49 @@ func (s *documentService) ListDocuments(ctx context.Context, userID string) ([]*
 
 // GetProjectDocuments gets all documents in a project
 func (s *documentService) GetProjectDocuments(ctx context.Context, projectID string, userID string) ([]*models.Document, error) {
-	hasAccess, err := s.hasProjectAccess(ctx, projectID, userID)
-	if err != nil {
-		if err == repository.ErrNotFound {
-			return nil, errors.ErrProjectNotFound
-		}
-		return nil, err
-	}
-	if !hasAccess {
-		return nil, errors.ErrUnauthorized
+	log.Printf("Getting project documents - ProjectID: %s, UserID: %s", projectID, userID)
+
+	// Validate project ID
+	if _, err := primitive.ObjectIDFromHex(projectID); err != nil {
+		log.Printf("Invalid project ID format: %v", err)
+		return nil, repository.ErrProjectNotFound
 	}
 
-	return s.documentRepo.GetByProject(ctx, projectID)
+	// Check project access
+	project, err := s.projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			log.Printf("Project not found: %s", projectID)
+			return nil, repository.ErrProjectNotFound
+		}
+		log.Printf("Error fetching project: %v", err)
+		return nil, err
+	}
+
+	// Check if user has access
+	hasAccess := project.CreatedBy == userID
+	if !hasAccess {
+		for _, memberID := range project.Team {
+			if memberID == userID {
+				hasAccess = true
+				break
+			}
+		}
+	}
+
+	if !hasAccess {
+		log.Printf("User %s not authorized to access project %s", userID, projectID)
+		return nil, repository.ErrUnauthorized
+	}
+
+	// Get project documents
+	docs, err := s.documentRepo.GetByProject(ctx, projectID)
+	if err != nil {
+		log.Printf("Error fetching project documents: %v", err)
+		return nil, err
+	}
+
+	return docs, nil
 }
 
 // GetDocumentVersions gets the version history of a document

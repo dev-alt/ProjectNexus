@@ -1,12 +1,15 @@
-﻿// internal/repository/mongo/project_repository.go
+// internal/repository/mongo/project_repository.go
 package mongo
 
 import (
 	"context"
+	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"projectnexus/internal/models"
+	"projectnexus/internal/repository"
 	"time"
 )
 
@@ -26,7 +29,8 @@ func (r *ProjectRepository) Create(ctx context.Context, project *models.Project)
 
 	result, err := r.collection.InsertOne(ctx, project)
 	if err != nil {
-		return err
+		log.Printf("MongoDB error creating project: %v", err)
+		return fmt.Errorf("failed to create project in database: %w", err)
 	}
 
 	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
@@ -72,19 +76,41 @@ func (r *ProjectRepository) GetByUser(ctx context.Context, userID string) ([]*mo
 }
 
 func (r *ProjectRepository) Update(ctx context.Context, project *models.Project) error {
+	log.Printf("Updating project in repository: %+v", project)
+
 	oid, err := primitive.ObjectIDFromHex(project.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid project ID: %w", err)
 	}
 
 	project.UpdatedAt = time.Now()
 
-	_, err = r.collection.UpdateOne(
+	updateDoc := bson.M{
+		"$set": bson.M{
+			"name":        project.Name,
+			"description": project.Description,
+			"status":      project.Status,
+			"progress":    project.Progress,
+			"team":        project.Team,
+			"updated_at":  project.UpdatedAt,
+		},
+	}
+
+	result, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": oid},
-		bson.M{"$set": project},
+		updateDoc,
 	)
-	return err
+	if err != nil {
+		log.Printf("Failed to update project: %v", err)
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return repository.ErrProjectNotFound
+	}
+
+	return nil
 }
 
 func (r *ProjectRepository) Delete(ctx context.Context, id string) error {
@@ -110,4 +136,39 @@ func (r *ProjectRepository) List(ctx context.Context, filter interface{}) ([]*mo
 	}
 
 	return projects, nil
+}
+
+func (r *ProjectRepository) CheckUserAccess(ctx context.Context, projectID string, userID string) (bool, error) {
+	// Add logging
+	log.Printf("Checking user access - ProjectID: %s, UserID: %s", projectID, userID)
+
+	oid, err := primitive.ObjectIDFromHex(projectID)
+	if err != nil {
+		log.Printf("Invalid project ID format: %v", err)
+		return false, repository.ErrProjectNotFound
+	}
+
+	var project models.Project
+	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&project)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			log.Printf("Project not found: %s", projectID)
+			return false, repository.ErrProjectNotFound
+		}
+		log.Printf("Error fetching project: %v", err)
+		return false, err
+	}
+
+	// Check if user is project creator or team member
+	if project.CreatedBy == userID {
+		return true, nil
+	}
+
+	for _, memberID := range project.Team {
+		if memberID == userID {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }

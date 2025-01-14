@@ -1,4 +1,4 @@
-﻿package repository
+package repository
 
 import (
 	"context"
@@ -28,11 +28,11 @@ type ProjectRepository interface {
 	List(ctx context.Context, filter interface{}) ([]*models.Project, error)
 }
 type DocumentRepository interface {
-	Create(ctx context.Context, doc *models.Document) error
+	Create(ctx context.Context, document *models.Document) error
+	CreateVersion(ctx context.Context, version *models.DocumentVersion) error
 	GetByID(ctx context.Context, id string) (*models.Document, error)
 	GetByProject(ctx context.Context, projectID string) ([]*models.Document, error)
-	Update(ctx context.Context, doc *models.Document) error
+	Update(ctx context.Context, document *models.Document) error
 	Delete(ctx context.Context, id string) error
-	CreateVersion(ctx context.Context, version *models.DocumentVersion) error
 	GetVersions(ctx context.Context, documentID string) ([]*models.DocumentVersion, error)
 }

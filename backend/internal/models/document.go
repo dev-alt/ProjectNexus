@@ -1,7 +1,11 @@
-﻿// internal/models/document.go
+// Package models internal/models/document.go
 package models
 
-import "time"
+import (
+	"fmt"
+	"strings"
+	"time"
+)
 
 type DocumentType string
 
@@ -44,4 +48,61 @@ type UpdateDocumentInput struct {
 	Title   *string       `json:"title,omitempty"`
 	Type    *DocumentType `json:"type,omitempty"`
 	Content *string       `json:"content,omitempty"`
+}
+
+func (i *UpdateDocumentInput) Validate() error {
+	if i.Title != nil && strings.TrimSpace(*i.Title) == "" {
+		return fmt.Errorf("title cannot be empty")
+	}
+	if i.Type != nil && !i.Type.IsValid() {
+		return fmt.Errorf("invalid document type: %s", *i.Type)
+	}
+	if i.Content != nil && strings.TrimSpace(*i.Content) == "" {
+		return fmt.Errorf("content cannot be empty")
+	}
+	return nil
+}
+
+func (t DocumentType) IsValid() bool {
+	switch t {
+	case DocumentTypeHLD,
+		DocumentTypeLLD,
+		DocumentTypeSpec,
+		DocumentTypeOther:
+		return true
+	default:
+		return false
+	}
+}
+
+func (d *Document) Validate() error {
+	if d.ProjectID == "" {
+		return fmt.Errorf("project ID is required")
+	}
+	if d.Title == "" {
+		return fmt.Errorf("title is required")
+	}
+	if !d.Type.IsValid() {
+		return fmt.Errorf("invalid document type: %s", d.Type)
+	}
+	if d.Version < 0 {
+		return fmt.Errorf("version cannot be negative")
+	}
+	return nil
+}
+
+func (i *CreateDocumentInput) Validate() error {
+	if i.ProjectID == "" {
+		return fmt.Errorf("project ID is required")
+	}
+	if i.Title == "" {
+		return fmt.Errorf("title is required")
+	}
+	if !i.Type.IsValid() {
+		return fmt.Errorf("invalid document type: %s", i.Type)
+	}
+	if i.Content == "" {
+		return fmt.Errorf("content is required")
+	}
+	return nil
 }

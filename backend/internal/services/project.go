@@ -1,11 +1,15 @@
-﻿// Package services internal/services/project.go
+// Package services internal/services/project.go
 package services
 
 import (
 	"context"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"projectnexus/internal/errors"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
+	"time"
 )
 
 type ProjectService interface {
@@ -111,51 +115,125 @@ func (s *projectService) ListProjects(ctx context.Context, userID string) ([]*mo
 	return s.projectRepo.GetByUser(ctx, userID)
 }
 
-func (s *projectService) AddTeamMember(ctx context.Context, projectID string, userID string, adderID string) error {
-	project, err := s.GetProject(ctx, projectID, adderID)
-	if err != nil {
-		return err
-	}
-	_, err = s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		if err == repository.ErrNotFound {
-			return errors.ErrUserNotFound
-		} else {
-			return err
-		}
-	}
-	if containsString(project.Team, userID) {
-		return errors.ErrAlreadyInTeam
+func (s *projectService) AddTeamMember(ctx context.Context, projectID string, memberID string, adderID string) error {
+	log.Printf("Adding team member - ProjectID: %s, MemberID: %s, AdderID: %s", projectID, memberID, adderID)
+
+	// Validate project ID
+	if _, err := primitive.ObjectIDFromHex(projectID); err != nil {
+		return repository.ErrProjectNotFound
 	}
 
-	project.Team = append(project.Team, userID)
-	return s.projectRepo.Update(ctx, project)
+	// Get project
+	project, err := s.projectRepo.GetByID(ctx, projectID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return repository.ErrProjectNotFound
+		}
+		return err
+	}
+
+	// Check if adder is project creator
+	if project.CreatedBy != adderID {
+		log.Printf("User %s is not authorized to add members to project %s", adderID, projectID)
+		return repository.ErrUnauthorized
+	}
+
+	// Verify member exists
+	_, err = s.userRepo.GetByID(ctx, memberID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return repository.ErrUserNotFound
+		}
+		return err
+	}
+
+	// Check if member is already in team
+	for _, existingMemberID := range project.Team {
+		if existingMemberID == memberID {
+			return repository.ErrAlreadyInTeam
+		}
+	}
+
+	// Add member to team
+	project.Team = append(project.Team, memberID)
+	project.UpdatedAt = time.Now()
+
+	// Update project
+	err = s.projectRepo.Update(ctx, project)
+	if err != nil {
+		log.Printf("Failed to update project: %v", err)
+		return err
+	}
+
+	log.Printf("Successfully added member %s to project %s", memberID, projectID)
+	return nil
 }
 
-func (s *projectService) RemoveTeamMember(ctx context.Context, projectID string, userID string, removerID string) error {
-	project, err := s.GetProject(ctx, projectID, removerID)
+func (s *projectService) RemoveTeamMember(ctx context.Context, projectID string, memberID string, removerID string) error {
+	log.Printf("Removing team member - ProjectID: %s, MemberID: %s, RemoverID: %s", projectID, memberID, removerID)
+
+	// Validate project ID
+	if _, err := primitive.ObjectIDFromHex(projectID); err != nil {
+		return repository.ErrProjectNotFound
+	}
+
+	// Get project
+	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return repository.ErrProjectNotFound
+		}
 		return err
 	}
 
-	_, err = s.userRepo.GetByID(ctx, userID)
-	if err != nil {
-		if err == repository.ErrNotFound {
-			return errors.ErrUserNotFound
-		} else {
-			return err
-		}
-	}
-	// Can't remove the project creator
-	if userID == project.CreatedBy {
-		return errors.ErrCannotRemoveOwner
-	}
-	if !containsString(project.Team, userID) {
-		return errors.ErrNotInTeam
+	// Check if remover is project creator
+	if project.CreatedBy != removerID {
+		log.Printf("User %s is not authorized to remove members from project %s", removerID, projectID)
+		return repository.ErrUnauthorized
 	}
 
-	project.Team = removeString(project.Team, userID)
-	return s.projectRepo.Update(ctx, project)
+	// Cannot remove project creator
+	if memberID == project.CreatedBy {
+		log.Printf("Attempted to remove project creator %s from project %s", memberID, projectID)
+		return repository.ErrCannotRemoveOwner
+	}
+
+	// Verify member exists
+	_, err = s.userRepo.GetByID(ctx, memberID)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return repository.ErrUserNotFound
+		}
+		return err
+	}
+
+	// Check if member is in team
+	memberFound := false
+	newTeam := make([]string, 0, len(project.Team))
+	for _, existingMemberID := range project.Team {
+		if existingMemberID == memberID {
+			memberFound = true
+			continue
+		}
+		newTeam = append(newTeam, existingMemberID)
+	}
+
+	if !memberFound {
+		return repository.ErrNotInTeam
+	}
+
+	// Update project with new team
+	project.Team = newTeam
+	project.UpdatedAt = time.Now()
+
+	err = s.projectRepo.Update(ctx, project)
+	if err != nil {
+		log.Printf("Failed to update project: %v", err)
+		return err
+	}
+
+	log.Printf("Successfully removed member %s from project %s", memberID, projectID)
+	return nil
 }
 
 // Helper functions
@@ -168,22 +246,22 @@ func containsString(slice []string, str string) bool {
 	return false
 }
 
-func removeString(slice []string, str string) []string {
-	result := make([]string, 0)
-	for _, item := range slice {
-		if item != str {
-			result = append(result, item)
-		}
-	}
-	return result
-}
+//func removeString(slice []string, str string) []string {
+//	result := make([]string, 0)
+//	for _, item := range slice {
+//		if item != str {
+//			result = append(result, item)
+//		}
+//	}
+//	return result
+//}
 
 // Define valid project statuses
 var validProjectStatuses = map[string]bool{
-	"planning":   true,
-	"inProgress": true,
-	"completed":  true,
-	"onHold":     true,
+	"Planning":    true,
+	"In Progress": true,
+	"Review":      true,
+	"Completed":   true,
 }
 
 // isValidProjectStatus checks if the given status is valid

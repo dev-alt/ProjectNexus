@@ -1,7 +1,9 @@
-﻿// internal/api/handlers/document.go
+// Package handlers internal/api/handlers/document.go
 package handlers
 
 import (
+	"fmt"
+	"log"
 	"net/http"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
@@ -24,20 +26,27 @@ func NewDocumentHandler(documentService services.DocumentService) *DocumentHandl
 func (h *DocumentHandler) CreateDocument(c *gin.Context) {
 	var input models.CreateDocumentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request format: %v", err)})
 		return
 	}
 
-	userID := c.GetString("userID") // Set by auth middleware
+	userID := c.GetString("userID")
+	if userID == "" {
+		log.Printf("No userID found in context")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
 	doc, err := h.documentService.CreateDocument(c.Request.Context(), input, userID)
 	if err != nil {
+		log.Printf("Error creating document: %v", err)
 		switch err {
 		case repository.ErrProjectNotFound:
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		case repository.ErrUnauthorized:
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to create documents in this project"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create document"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create document: %v", err)})
 		}
 		return
 	}
@@ -50,15 +59,29 @@ func (h *DocumentHandler) GetDocument(c *gin.Context) {
 	documentID := c.Param("id")
 	userID := c.GetString("userID")
 
+	// Add debug logging
+	log.Printf("GetDocument request - DocumentID: %s, UserID: %s", documentID, userID)
+
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
+		return
+	}
+
 	doc, err := h.documentService.GetDocument(c.Request.Context(), documentID, userID)
 	if err != nil {
+		log.Printf("Error getting document: %v", err)
 		switch err {
 		case repository.ErrDocumentNotFound:
 			c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
+		case repository.ErrProjectNotFound:
+			c.JSON(http.StatusNotFound, gin.H{"error": "Associated project not found"})
 		case repository.ErrUnauthorized:
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to access this document"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get document"})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to get document",
+				"details": err.Error(),
+			})
 		}
 		return
 	}
@@ -71,21 +94,32 @@ func (h *DocumentHandler) UpdateDocument(c *gin.Context) {
 	documentID := c.Param("id")
 	userID := c.GetString("userID")
 
+	// Add debug logging
+	log.Printf("Updating document - ID: %s, UserID: %s", documentID, userID)
+
 	var input models.UpdateDocumentInput
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		log.Printf("Failed to bind JSON input: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid request format: %v", err)})
 		return
 	}
 
+	// Add debug logging for input
+	log.Printf("Update input: %+v", input)
+
 	doc, err := h.documentService.UpdateDocument(c.Request.Context(), documentID, input, userID)
 	if err != nil {
+		log.Printf("Error updating document: %v", err)
 		switch err {
 		case repository.ErrDocumentNotFound:
 			c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
 		case repository.ErrUnauthorized:
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to update this document"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update document"})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   fmt.Sprintf("Failed to update document: %v", err),
+				"details": err.Error(),
+			})
 		}
 		return
 	}
@@ -132,17 +166,28 @@ func (h *DocumentHandler) GetProjectDocuments(c *gin.Context) {
 	projectID := c.Param("projectId")
 	userID := c.GetString("userID")
 
+	// Add debug logging
+	log.Printf("GetProjectDocuments request - ProjectID: %s, UserID: %s", projectID, userID)
+
 	docs, err := h.documentService.GetProjectDocuments(c.Request.Context(), projectID, userID)
 	if err != nil {
+		log.Printf("Error getting project documents: %v", err)
 		switch err {
 		case repository.ErrProjectNotFound:
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
 		case repository.ErrUnauthorized:
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to access project documents"})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get project documents"})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "Failed to get project documents",
+				"details": err.Error(),
+			})
 		}
 		return
+	}
+
+	if docs == nil {
+		docs = []*models.Document{} // Return empty array instead of null
 	}
 
 	c.JSON(http.StatusOK, docs)

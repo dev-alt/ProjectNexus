@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	gin.SetMode(gin.DebugMode)
 	// Initialize MongoDB connection
 	client, err := mongo.Initialize()
 	if err != nil {
