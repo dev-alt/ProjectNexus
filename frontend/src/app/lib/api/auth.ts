@@ -19,11 +19,11 @@ interface AuthResponse {
     };
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8085';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8085/api';
 
 export const authApi = {
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
-        const response = await fetch(`${API_URL}/v1/auth/login`, {
+        const response = await fetch(`${API_URL}/auth/login`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -36,7 +36,9 @@ export const authApi = {
             throw new Error(error.message || 'Failed to login');
         }
 
-        return response.json();
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        return data;
     },
 
     async register(data: RegisterData): Promise<AuthResponse> {
@@ -53,12 +55,18 @@ export const authApi = {
             throw new Error(error.message || 'Failed to register');
         }
 
-        return response.json();
+        const responseData = await response.json();
+        localStorage.setItem('token', responseData.token);
+        return responseData;
     },
 
     async getCurrentUser(): Promise<AuthResponse['user']> {
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/v1/users/me`, {
-            credentials: 'include', // Important for cookies
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
         });
 
         if (!response.ok) {
@@ -70,19 +78,33 @@ export const authApi = {
     },
 
     async logout(): Promise<void> {
-        const response = await fetch(`${API_URL}/v1/auth/logout`, {
-            method: 'POST',
-        });
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`${API_URL}/v1/auth/logout`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to logout');
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to logout');
+            }
+        } finally {
+            localStorage.removeItem('token');
         }
     },
 
     async refreshToken(): Promise<AuthResponse> {
+        const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/v1/auth/refresh`, {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+            },
         });
 
         if (!response.ok) {
@@ -90,6 +112,8 @@ export const authApi = {
             throw new Error(error.message || 'Failed to refresh token');
         }
 
-        return response.json();
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        return data;
     }
 };

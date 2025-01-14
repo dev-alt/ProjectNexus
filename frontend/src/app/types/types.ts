@@ -22,7 +22,7 @@ export interface Mockup {
     tool: string;
 }
 export interface Project {
-    id: number;
+    id: string;
     name: string;
     description: string;
     status: string;

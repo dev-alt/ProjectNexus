@@ -3,6 +3,7 @@
 
 import {Project} from "@/types/types";
 import {ProjectCard} from "@/components/projects/ProjectCard";
+import React from "react";
 
 interface ProjectGridProps {
     projects: Project[];

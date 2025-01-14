@@ -18,6 +18,11 @@ const MainNav = () => {
         { href: '/present', label: 'Present', icon: FileText },
         { href: '/team', label: 'Team', icon: Users },
         { href: '/settings', label: 'Settings', icon: Settings },
+        {
+            href: '/test3',
+            label: 'Test',
+            icon: FileText
+        }
     ];
 
     return (
