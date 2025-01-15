@@ -58,24 +58,33 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
-          # Transfer Docker images and docker-compose.yml to the server
+          # First create a .env file with our environment variables
+          cat << EOT > .env
+          MONGODB_URI=${MONGODB_URI}
+          MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+          JWT_SECRET=${JWT_SECRET}
+          NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+          EOT
+          
+          # Transfer files to the server
           scp -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
           scp -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
           scp -o StrictHostKeyChecking=no docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:~/docker-compose.yml
-
+          scp -o StrictHostKeyChecking=no .env $DEPLOY_USER@$DEPLOY_HOST:~/.env
+          
           # SSH into the server and deploy
           ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
-          # Load Docker images
-          docker load -i ~/frontend.tar
-          docker load -i ~/backend.tar
-
-          # Stop and remove existing containers
-          docker-compose -f ~/docker-compose.yml down
-
-          # Start the services
-          docker-compose -f ~/docker-compose.yml up -d
-
-          # Clean up unused images and tar files
-          docker image prune -f
-          rm ~/frontend.tar ~/backend.tar ~/docker-compose.yml
+            # Load Docker images
+            docker load -i ~/frontend.tar
+            docker load -i ~/backend.tar
+          
+            # Stop and remove existing containers
+            docker-compose -f ~/docker-compose.yml down --remove-orphans
+          
+            # Start the services with env file
+            docker-compose -f ~/docker-compose.yml --env-file .env up -d
+          
+            # Clean up unused images and tar files
+            docker image prune -f
+            rm ~/frontend.tar ~/backend.tar ~/docker-compose.yml
           EOF
