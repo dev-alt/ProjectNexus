@@ -8,7 +8,7 @@ import { ProjectSearch } from '@/components/projects/ProjectSearch';
 import { ProjectGrid } from '@/components/projects/ProjectGrid';
 import ProjectForm from '@/components/projects/ProjectForm';
 import DeleteProjectDialog from '@/components/projects/DeleteProjectDialog';
-import { Project } from '@/types/types';
+import type { Project } from '@/types/project';
 import { projectApi, CreateProjectInput, UpdateProjectInput } from '@/lib/api/projects';
 import { useToast } from '@/lib/hooks/use-toast';
 

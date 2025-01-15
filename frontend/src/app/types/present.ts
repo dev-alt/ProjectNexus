@@ -65,4 +65,18 @@ export interface ProjectData {
     mockups: Mockup[];
 }
 
+export interface Project {
+    id: string;
+    name: string;
+    description: string;
+    status: string;
+    progress: number;
+    startDate: string;
+    endDate: string;
+    lastUpdated: string;
+    team: number;
+    documents: number;
+}
+
+
 export type ViewableItem = Document | Mockup;

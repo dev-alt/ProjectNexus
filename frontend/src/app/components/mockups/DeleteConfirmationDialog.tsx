@@ -1,7 +1,7 @@
 ﻿import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import Button from '@/components/ui/Button';
-import { Mockup } from '@/types/types';
+import {Mockup} from "@/types/mockup";
 
 interface DeleteConfirmationDialogProps {
     mockup: Mockup;
@@ -54,7 +54,7 @@ const DeleteConfirmationDialog: React.FC<DeleteConfirmationDialogProps> = ({
                         </p>
                         <input
                             type="text"
-                            className="mt-2 w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-lg 
+                            className="mt-2 w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-lg
                        focus:outline-none focus:ring-2 focus:ring-red-500 dark:bg-red-900/20"
                             placeholder="Type mockup name here"
                         />

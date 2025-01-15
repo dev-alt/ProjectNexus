@@ -4,7 +4,7 @@ import { X, Edit2, Clock, User, Download, Share2, ExternalLink } from 'lucide-re
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/card';
 import StatusBadge from '@/components/ui/StatusBadge';
-import {Mockup} from "@/types/types";
+import {Mockup} from "@/types/mockup";
 
 interface MockupViewerProps {
     mockup: Mockup;

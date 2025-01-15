@@ -6,7 +6,7 @@ import { MockupHeader, MockupControls, MockupGrid, MockupList } from '@/componen
 import MockupForm from '@/components/mockups/MockupForm';
 import DeleteConfirmationDialog from '@/components/mockups/DeleteConfirmationDialog';
 import MockupViewer from '@/components/mockups/MockupViewer';
-import { Mockup } from '@/types/types';
+import {Mockup} from "@/types/mockup";
 
 // Mockup types for filtering
 const mockupTypes = ['All Types', 'Wireframe', 'Prototype', 'High-fidelity'];

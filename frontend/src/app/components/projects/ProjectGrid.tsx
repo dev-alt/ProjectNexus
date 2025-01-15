@@ -1,7 +1,7 @@
 ﻿// ProjectGrid.tsx
 
 
-import {Project} from "@/types/types";
+import type { Project } from '@/types/project';
 import {ProjectCard} from "@/components/projects/ProjectCard";
 import React from "react";
 

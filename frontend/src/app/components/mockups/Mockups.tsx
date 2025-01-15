@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import { Mockup } from '@/types/types';
+import {Mockup} from "@/types/mockup";
 
 interface MockupHeaderProps {
     onCreateNew: () => void;

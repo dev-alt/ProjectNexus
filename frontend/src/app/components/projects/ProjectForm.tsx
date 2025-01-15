@@ -5,7 +5,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import TextArea from '@/components/ui/TextArea';
 import Select from '@/components/ui/Select';
-import {Project} from "@/types/types";
+import type { Project } from '@/types/project';
 
 
 interface ProjectFormProps {

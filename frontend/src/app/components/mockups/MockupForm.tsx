@@ -3,8 +3,7 @@ import { X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-
-import { Mockup } from '@/types/types';
+import {Mockup} from "@/types/mockup";
 
 interface MockupFormProps {
     mockup?: Mockup; // If provided, we're editing; if not, we're creating

@@ -1,34 +1,23 @@
-﻿// types.ts
-export interface Document {
-    id: number;
-    title: string;
-    type: string;
-    project: string;
-    content: string;
-    lastModified: string;
-    author: string;
-    status: string;
+﻿import { ProjectData, Document, TeamMember, Mockup, TimelineEvent, ProjectMetric, ActivityItem, ViewableItem, Project } from '@/types/present';
+
+export interface PresentPageProps {
+    params: {
+        id: string;
+    };
 }
-// Types
-export interface Mockup {
-    id: number;
-    name: string;
-    project: string;
-    type: string;
-    lastModified: string;
-    author: string;
-    status: string;
-    thumbnail: string;
-    tool: string;
-}
-export interface Project {
+
+export interface APIDocument {
     id: string;
-    name: string;
-    description: string;
-    status: string;
-    team: number;
-    documents: number;
-    lastUpdated: string;
-    progress: number;
+    type: string;
+    title: string;
+    updatedAt: string;
+    projectId: string;
 }
+
+export type PresentDocument = Document;
+export type PresentTeamMember = TeamMember;
+
+export type { ProjectData, Mockup, TimelineEvent, ProjectMetric, ActivityItem, ViewableItem, Project };
+
+
 

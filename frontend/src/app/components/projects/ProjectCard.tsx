@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Clock, Users, FileText, MoreVertical } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {Project} from "@/types/types";
+import type { Project } from '@/types/project';
 
 
 interface ProjectCardProps {

@@ -1,7 +1,7 @@
 // app/hooks/use-projects.ts
 import { useState, useEffect, useCallback } from 'react';
 import { projectApi } from '@/lib/api/projects';
-import type { Project } from '@/types/types';
+import type { Project } from '@/types/project';
 import { useToast } from '@/lib/hooks/use-toast';
 
 export function useProjects() {

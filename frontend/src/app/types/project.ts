@@ -35,3 +35,13 @@ export interface ProjectData {
     documents: Document[];
     mockups: Mockup[];
 }
+export interface Project {
+    id: string;
+    name: string;
+    description: string;
+    status: string;
+    team: number;
+    documents: number;
+    lastUpdated: string;
+    progress: number;
+}
