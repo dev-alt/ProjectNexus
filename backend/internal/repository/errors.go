@@ -1,4 +1,4 @@
-// Package errors internal/errors/errors.go
+// Package repository Package errors internal/errors/errors.go
 package repository
 
 import "errors"

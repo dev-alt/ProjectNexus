@@ -1,4 +1,4 @@
-﻿// internal/services/auth.go
+﻿// Package services internal/services/auth.go
 package services
 
 import (

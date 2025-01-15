@@ -1,4 +1,4 @@
-package services
+package tests
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"projectnexus/internal/errors"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
+	"projectnexus/internal/services"
 	"testing"
 )
 
@@ -106,7 +107,7 @@ func TestDocumentService_GetDocument(t *testing.T) {
 	ctx := context.Background()
 	mockDocRepo := new(MockDocumentRepository)
 	mockProjRepo := new(MockProjectRepository)
-	service := NewDocumentService(mockDocRepo, mockProjRepo)
+	service := services.NewDocumentService(mockDocRepo, mockProjRepo)
 
 	testDoc := &models.Document{
 		ID:        "doc1",
@@ -154,7 +155,7 @@ func TestDocumentService_ListDocuments(t *testing.T) {
 	ctx := context.Background()
 	mockDocRepo := new(MockDocumentRepository)
 	mockProjRepo := new(MockProjectRepository)
-	service := NewDocumentService(mockDocRepo, mockProjRepo)
+	service := services.NewDocumentService(mockDocRepo, mockProjRepo)
 
 	testProjects := []*models.Project{
 		{ID: "proj1", CreatedBy: "user1"},
@@ -183,7 +184,7 @@ func TestDocumentService_GetProjectDocuments(t *testing.T) {
 	ctx := context.Background()
 	mockDocRepo := new(MockDocumentRepository)
 	mockProjRepo := new(MockProjectRepository)
-	service := NewDocumentService(mockDocRepo, mockProjRepo)
+	service := services.NewDocumentService(mockDocRepo, mockProjRepo)
 
 	testProject := &models.Project{
 		ID:        "proj1",

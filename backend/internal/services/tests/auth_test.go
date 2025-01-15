@@ -1,9 +1,10 @@
-﻿package services
+﻿package tests
 
 import (
 	"context"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
+	"projectnexus/internal/services"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,7 @@ func (m *MockUserRepository) Update(ctx context.Context, user *models.User) erro
 
 func TestAuthService_Register(t *testing.T) {
 	mockRepo := new(MockUserRepository)
-	authService := NewAuthService(mockRepo, "test-secret")
+	authService := services.NewAuthService(mockRepo, "test-secret")
 
 	ctx := context.Background()
 	input := models.RegisterInput{
@@ -55,7 +56,7 @@ func TestAuthService_Register(t *testing.T) {
 	t.Run("successful registration", func(t *testing.T) {
 		// Clear previous mock calls
 		mockRepo = new(MockUserRepository)
-		authService = NewAuthService(mockRepo, "test-secret")
+		authService = services.NewAuthService(mockRepo, "test-secret")
 
 		mockRepo.On("GetByEmail", ctx, input.Email).Return(nil, nil)
 		mockRepo.On("Create", ctx, mock.AnythingOfType("*models.User")).Return(nil)
@@ -73,7 +74,7 @@ func TestAuthService_Register(t *testing.T) {
 	t.Run("user already exists", func(t *testing.T) {
 		// Clear previous mock calls
 		mockRepo = new(MockUserRepository)
-		authService = NewAuthService(mockRepo, "test-secret")
+		authService = services.NewAuthService(mockRepo, "test-secret")
 
 		existingUser := &models.User{Email: input.Email}
 		// This is what changed - we're returning nil for error since we found the user

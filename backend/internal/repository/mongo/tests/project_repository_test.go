@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"projectnexus/internal/models"
+	mongo2 "projectnexus/internal/repository/mongo"
 	"testing"
 	"time"
 )
@@ -32,7 +33,7 @@ func TestProjectRepository_Create(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewProjectRepository(db)
+	repo := mongo2.NewProjectRepository(db)
 	ctx := context.Background()
 
 	project := &models.Project{
@@ -56,7 +57,7 @@ func TestProjectRepository_GetByID(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewProjectRepository(db)
+	repo := mongo2.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
@@ -86,7 +87,7 @@ func TestProjectRepository_GetByUser(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewProjectRepository(db)
+	repo := mongo2.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test projects
@@ -121,7 +122,7 @@ func TestProjectRepository_Update(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewProjectRepository(db)
+	repo := mongo2.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
@@ -155,7 +156,7 @@ func TestProjectRepository_Delete(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewProjectRepository(db)
+	repo := mongo2.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test project
@@ -180,7 +181,7 @@ func TestProjectRepository_List(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	repo := NewProjectRepository(db)
+	repo := mongo2.NewProjectRepository(db)
 	ctx := context.Background()
 
 	// Create test projects

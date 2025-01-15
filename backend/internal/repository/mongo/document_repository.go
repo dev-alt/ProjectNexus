@@ -3,6 +3,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -79,7 +80,7 @@ func (r *DocumentRepository) GetByID(ctx context.Context, id string) (*models.Do
 	var doc models.Document
 	err = r.documents.FindOne(ctx, bson.M{"_id": oid}).Decode(&doc)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			log.Printf("Document not found: %s", id)
 			return nil, repository.ErrDocumentNotFound
 		}
@@ -98,7 +99,12 @@ func (r *DocumentRepository) GetByProject(ctx context.Context, projectID string)
 		log.Printf("Error querying documents: %v", err)
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			log.Printf("Error closing cursor: %v", err)
+		}
+	}(cursor, ctx)
 
 	var docs []*models.Document
 	if err = cursor.All(ctx, &docs); err != nil {

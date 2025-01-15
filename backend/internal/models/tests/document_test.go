@@ -1,45 +1,46 @@
 // internal/models/document_test.go
-package models
+package tests
 
 import (
 	"github.com/stretchr/testify/assert"
+	"projectnexus/internal/models"
 	"testing"
 )
 
 func TestDocumentType_IsValid(t *testing.T) {
 	tests := []struct {
 		name    string
-		docType DocumentType
+		docType models.DocumentType
 		want    bool
 	}{
 		{
 			name:    "valid HLD",
-			docType: DocumentTypeHLD,
+			docType: models.DocumentTypeHLD,
 			want:    true,
 		},
 		{
 			name:    "valid LLD",
-			docType: DocumentTypeLLD,
+			docType: models.DocumentTypeLLD,
 			want:    true,
 		},
 		{
 			name:    "valid spec",
-			docType: DocumentTypeSpec,
+			docType: models.DocumentTypeSpec,
 			want:    true,
 		},
 		{
 			name:    "valid other",
-			docType: DocumentTypeOther,
+			docType: models.DocumentTypeOther,
 			want:    true,
 		},
 		{
 			name:    "invalid type",
-			docType: DocumentType("Invalid"),
+			docType: models.DocumentType("Invalid"),
 			want:    false,
 		},
 		{
 			name:    "empty type",
-			docType: DocumentType(""),
+			docType: models.DocumentType(""),
 			want:    false,
 		},
 	}
@@ -54,43 +55,43 @@ func TestDocumentType_IsValid(t *testing.T) {
 func TestCreateDocumentInput_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   CreateDocumentInput
+		input   models.CreateDocumentInput
 		wantErr bool
 	}{
 		{
 			name: "valid input",
-			input: CreateDocumentInput{
+			input: models.CreateDocumentInput{
 				ProjectID: "proj1",
 				Title:     "Test Document",
-				Type:      DocumentTypeHLD,
+				Type:      models.DocumentTypeHLD,
 				Content:   "Test content",
 			},
 			wantErr: false,
 		},
 		{
 			name: "empty project ID",
-			input: CreateDocumentInput{
+			input: models.CreateDocumentInput{
 				Title:   "Test Document",
-				Type:    DocumentTypeHLD,
+				Type:    models.DocumentTypeHLD,
 				Content: "Test content",
 			},
 			wantErr: true,
 		},
 		{
 			name: "empty title",
-			input: CreateDocumentInput{
+			input: models.CreateDocumentInput{
 				ProjectID: "proj1",
-				Type:      DocumentTypeHLD,
+				Type:      models.DocumentTypeHLD,
 				Content:   "Test content",
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid type",
-			input: CreateDocumentInput{
+			input: models.CreateDocumentInput{
 				ProjectID: "proj1",
 				Title:     "Test Document",
-				Type:      DocumentType("Invalid"),
+				Type:      models.DocumentType("Invalid"),
 				Content:   "Test content",
 			},
 			wantErr: true,
@@ -112,29 +113,29 @@ func TestCreateDocumentInput_Validate(t *testing.T) {
 func TestUpdateDocumentInput_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   UpdateDocumentInput
+		input   models.UpdateDocumentInput
 		wantErr bool
 	}{
 		{
 			name: "valid input - all fields",
-			input: UpdateDocumentInput{
+			input: models.UpdateDocumentInput{
 				Title:   stringPtr("Updated Title"),
-				Type:    docTypePtr(DocumentTypeHLD),
+				Type:    docTypePtr(models.DocumentTypeHLD),
 				Content: stringPtr("Updated content"),
 			},
 			wantErr: false,
 		},
 		{
 			name: "valid input - partial update",
-			input: UpdateDocumentInput{
+			input: models.UpdateDocumentInput{
 				Title: stringPtr("Updated Title"),
 			},
 			wantErr: false,
 		},
 		{
 			name: "invalid type",
-			input: UpdateDocumentInput{
-				Type: docTypePtr(DocumentType("Invalid")),
+			input: models.UpdateDocumentInput{
+				Type: docTypePtr("Invalid"),
 			},
 			wantErr: true,
 		},
@@ -155,15 +156,15 @@ func TestUpdateDocumentInput_Validate(t *testing.T) {
 func TestDocument_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		doc     Document
+		doc     models.Document
 		wantErr bool
 	}{
 		{
 			name: "valid document",
-			doc: Document{
+			doc: models.Document{
 				ProjectID: "proj1",
 				Title:     "Test Document",
-				Type:      DocumentTypeHLD,
+				Type:      models.DocumentTypeHLD,
 				Content:   "Test content",
 				Version:   1,
 				CreatedBy: "user1",
@@ -172,9 +173,9 @@ func TestDocument_Validate(t *testing.T) {
 		},
 		{
 			name: "missing project ID",
-			doc: Document{
+			doc: models.Document{
 				Title:     "Test Document",
-				Type:      DocumentTypeHLD,
+				Type:      models.DocumentTypeHLD,
 				Content:   "Test content",
 				Version:   1,
 				CreatedBy: "user1",
@@ -183,10 +184,10 @@ func TestDocument_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid type",
-			doc: Document{
+			doc: models.Document{
 				ProjectID: "proj1",
 				Title:     "Test Document",
-				Type:      DocumentType("Invalid"),
+				Type:      models.DocumentType("Invalid"),
 				Content:   "Test content",
 				Version:   1,
 				CreatedBy: "user1",
@@ -195,10 +196,10 @@ func TestDocument_Validate(t *testing.T) {
 		},
 		{
 			name: "negative version",
-			doc: Document{
+			doc: models.Document{
 				ProjectID: "proj1",
 				Title:     "Test Document",
-				Type:      DocumentTypeHLD,
+				Type:      models.DocumentTypeHLD,
 				Content:   "Test content",
 				Version:   -1,
 				CreatedBy: "user1",
@@ -224,6 +225,6 @@ func stringPtr(s string) *string {
 	return &s
 }
 
-func docTypePtr(t DocumentType) *DocumentType {
+func docTypePtr(t models.DocumentType) *models.DocumentType {
 	return &t
 }

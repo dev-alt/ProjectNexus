@@ -1,4 +1,4 @@
-// internal/models/auth.go
+// Package models internal/models/auth.go
 package models
 
 type RegisterInput struct {

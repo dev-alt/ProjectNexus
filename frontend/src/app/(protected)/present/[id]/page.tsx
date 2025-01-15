@@ -20,7 +20,7 @@ import type { Document as APIDocument } from '@/types/documents';
 import type { Document as PresentDocument, TeamMember as PresentTeamMember } from '@/types/present';
 import { useProjects } from '@/lib/hooks/use-projects';
 import { useDocuments } from '@/lib/hooks/use-documents';
-import { useTeam } from '@/lib/hooks/use-team';
+import { useTeams } from '@/lib/hooks/use-teams';
 import { useToast } from '@/lib/hooks/use-toast';
 
 // Helper functions to map between API types and presentation types
@@ -49,11 +49,13 @@ export default function ProjectPresentation({ params }: { params: { id: string }
     // Fetch project data
     const { projects, isLoading: projectLoading } = useProjects();
     const { documents, isLoading: documentsLoading } = useDocuments();
-    const { members, isLoading: teamLoading } = useTeam(params.id);
+    const { teams, isLoading: teamLoading } = useTeams();
 
     const project = projects.find(p => p.id === params.id);
     const projectDocuments = documents.filter(d => d.projectId === params.id).map(mapAPIDocumentToPresent);
-    const teamMembers = members.map(mapTeamMemberToPresent);
+    const teamMembers = teams
+        .flatMap((team) => team.members)
+        .map(mapTeamMemberToPresent);
 
     // Share handlers
     const handleShare = () => {

@@ -1,4 +1,4 @@
-﻿// app/(protected)/projects/page.tsx
+﻿// app/(protected)/team/[id]/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,45 +6,45 @@ import { TeamHeader } from '@/components/team/TeamHeader';
 import { TeamStats } from '@/components/team/TeamStats';
 import { TeamSearch } from '@/components/team/TeamSearch';
 import { TeamTable } from '@/components/team/TeamTable';
-import {TeamMemberForm} from '@/components/team/TeamMemberForm';
-import { useTeam } from '@/lib/hooks/use-team';
-import {TeamMember, TeamMemberRole, TeamMemberStatus} from '@/types/team';
+import { TeamMemberForm } from '@/components/team/TeamMemberForm';
+import { useTeams } from '@/lib/hooks/use-teams';
+import { TeamMember, TeamMemberRole, TeamMemberStatus } from '@/types/team';
 import { useToast } from '@/lib/hooks/use-toast';
-import { useParams } from 'next/navigation';
+import {teamApi} from "@/lib/api/team";
 
-export default function TeamPage() {
+interface TeamPageProps {
+    params: {
+        id: string;
+    };
+}
+
+export default function TeamPage({ params }: TeamPageProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
     const { toast } = useToast();
-    const params = useParams();
-    const teamId = params.id as string;
+    const { teams, isLoading, refreshTeams: refreshTeam } = useTeams();
 
-    const {
-        members,
-        isLoading,
-        refreshTeam,
-        addMember,
-        updateMember,
-        removeMember
-    } = useTeam(teamId); // Use the teamId here
+    // Find the current team
+    const currentTeam = teams.find(team => team.id === params.id);
+    const members = currentTeam?.members || [];
 
     useEffect(() => {
         refreshTeam().then(r => r);
     }, [refreshTeam]);
 
     // Get unique departments and active members count
-    const departments = Array.from(new Set(members.map(member => member.department)));
-    const activeMembers = members.filter(member => member.status === 'active' as TeamMemberStatus).length;
+    const departments = Array.from(new Set(members.map((member: TeamMember) => member.department)));
+    const activeMembers = members.filter((member: TeamMember) => member.status === 'Active' as TeamMemberStatus).length;
 
     // Filter team members based on search query
-    const filteredMembers = members.filter((member) => {
+    const filteredMembers = members.filter((member: TeamMember) => {
         const searchLower = searchQuery.toLowerCase();
         return (
-            member.name?.toLowerCase().includes(searchLower) ||
-            member.role?.toLowerCase().includes(searchLower) ||
-            member.department?.toLowerCase().includes(searchLower) ||
-            member.email?.toLowerCase().includes(searchLower)
+            member.name.toLowerCase().includes(searchLower) ||
+            member.role.toLowerCase().includes(searchLower) ||
+            (member.department?.toLowerCase() || '').includes(searchLower) ||
+            member.email.toLowerCase().includes(searchLower)
         );
     });
 
@@ -59,7 +59,7 @@ export default function TeamPage() {
         }
 
         try {
-            await addMember(data.email, data.role);
+            // Add member logic using team API
             setIsAddingMember(false);
             toast({
                 title: 'Success',
@@ -77,10 +77,11 @@ export default function TeamPage() {
 
     // Handle updating team member
     const handleUpdateMember = async (data: { role?: string; status?: string }) => {
-        if (!editingMember) return;
+        if (!editingMember || !currentTeam) return;
 
         try {
-            await updateMember(editingMember.id, data);
+            await teamApi.updateTeamMember(currentTeam.id, editingMember.id, data);
+            await refreshTeam();
             setEditingMember(null);
             toast({
                 title: 'Success',
@@ -98,9 +99,12 @@ export default function TeamPage() {
 
     // Handle removing team member
     const handleRemoveMember = async (memberId: string) => {
+        if (!currentTeam) return;
+
         if (window.confirm('Are you sure you want to remove this team member?')) {
             try {
-                await removeMember(memberId);
+                await teamApi.removeTeamMember(currentTeam.id, memberId);
+                await refreshTeam();
                 toast({
                     title: 'Success',
                     description: 'Team member removed successfully',
@@ -119,30 +123,35 @@ export default function TeamPage() {
     if (isLoading && members.length === 0) {
         return (
             <div className="h-96 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100" />
+            </div>
+        );
+    }
+
+    if (!currentTeam) {
+        return (
+            <div className="text-center py-12">
+                <h3 className="text-lg font-semibold">Team not found</h3>
+                <p className="text-gray-500 mt-2">The team you&#39;re looking for doesn&#39;t exist.</p>
             </div>
         );
     }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <TeamHeader onAddMember={() => setIsAddingMember(true)} />
 
-            {/* Stats */}
             <TeamStats
                 totalMembers={members.length}
                 totalDepartments={departments.length}
                 activeMembers={activeMembers}
             />
 
-            {/* Search */}
             <TeamSearch
                 value={searchQuery}
                 onChange={setSearchQuery}
             />
 
-            {/* Team Table */}
             {members.length === 0 ? (
                 <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">No team members yet</h3>
@@ -165,7 +174,6 @@ export default function TeamPage() {
                 />
             )}
 
-            {/* Add/Edit Member Modal */}
             {(isAddingMember || editingMember) && (
                 <TeamMemberForm
                     member={editingMember || undefined}

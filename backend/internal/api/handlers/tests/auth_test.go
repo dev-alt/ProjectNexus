@@ -1,4 +1,4 @@
-﻿package handlers
+﻿package tests
 
 import (
 	"bytes"
@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"projectnexus/internal/api/handlers"
 	"projectnexus/internal/models"
 	"testing"
 
@@ -48,7 +49,7 @@ func TestAuthHandler_Register(t *testing.T) {
 
 	t.Run("successful registration", func(t *testing.T) {
 		mockService := new(MockAuthService)
-		handler := NewAuthHandler(mockService)
+		handler := handlers.NewAuthHandler(mockService)
 
 		input := models.RegisterInput{
 			Email:    "test@example.com",

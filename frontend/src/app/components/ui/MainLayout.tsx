@@ -16,13 +16,8 @@ const MainNav = () => {
         { href: '/documents', label: 'Documents', icon: FileText },
         { href: '/mockups', label: 'Mockups', icon: FileText },
         { href: '/present', label: 'Present', icon: FileText },
-        { href: '/team', label: 'Team', icon: Users },
+        { href: '/team/', label: 'Team', icon: Users, isActive: (path: string) => path.startsWith('/team') },
         { href: '/settings', label: 'Settings', icon: Settings },
-        {
-            href: '/test3',
-            label: 'Test',
-            icon: FileText
-        }
     ];
 
     return (
@@ -38,7 +33,9 @@ const MainNav = () => {
             <div className="mt-8">
                 {navItems.map((item) => {
                     const Icon = item.icon;
-                    const isActive = pathname === item.href;
+                    const isActive = item.isActive
+                        ? item.isActive(pathname)
+                        : pathname === item.href;
 
                     return (
                         <Link

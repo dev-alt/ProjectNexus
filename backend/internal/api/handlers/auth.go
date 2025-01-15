@@ -1,6 +1,7 @@
 ﻿package handlers
 
 import (
+	"errors"
 	"net/http"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
@@ -28,8 +29,8 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	response, err := h.authService.Register(c.Request.Context(), input)
 	if err != nil {
-		switch err {
-		case repository.ErrUserExists:
+		switch {
+		case errors.Is(err, repository.ErrUserExists):
 			c.JSON(http.StatusConflict, gin.H{"error": "user already exists"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to register user"})
@@ -49,8 +50,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	response, err := h.authService.Login(c.Request.Context(), input)
 	if err != nil {
-		switch err {
-		case repository.ErrInvalidCredentials:
+		switch {
+		case errors.Is(err, repository.ErrInvalidCredentials):
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
@@ -61,7 +62,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// Optional: Add a handler to get the current user's information
+// GetMe Optional: Add a handler to get the current user's information
 func (h *AuthHandler) GetMe(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {

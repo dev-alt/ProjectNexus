@@ -19,7 +19,7 @@ type TeamRepository struct {
 	collection *mongo.Collection
 }
 
-func NewTeamRepository(db *mongo.Database) repository.TeamRepository {
+func NewTeamRepository(db *mongo.Database) *TeamRepository {
 	repo := &TeamRepository{
 		collection: db.Collection("team_members"),
 	}
@@ -48,20 +48,20 @@ func (r *TeamRepository) ensureIndexes(ctx context.Context) error {
 	return err
 }
 
-func (r *TeamRepository) Create(ctx context.Context, member *models.TeamMember) error {
-	member.CreatedAt = time.Now()
-	member.UpdatedAt = time.Now()
+func (r *TeamRepository) Create(ctx context.Context, team *models.Team) error {
+	team.CreatedAt = time.Now()
+	team.UpdatedAt = time.Now()
 
-	result, err := r.collection.InsertOne(ctx, member)
+	result, err := r.collection.InsertOne(ctx, team)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
 			return repository.ErrAlreadyInTeam
 		}
-		return fmt.Errorf("failed to create team member: %w", err)
+		return fmt.Errorf("failed to create team: %w", err)
 	}
 
 	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
-		member.ID = oid.Hex()
+		team.ID = oid.Hex()
 	}
 
 	return nil
@@ -172,4 +172,55 @@ func (r *TeamRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+func (r *TeamRepository) GetAll(ctx context.Context) ([]*models.Team, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch teams: %w", err)
+	}
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		if err := cursor.Close(ctx); err != nil {
+			log.Printf("Error closing cursor: %v", err)
+		}
+	}(cursor, ctx)
+
+	var teams []*models.Team
+	if err := cursor.All(ctx, &teams); err != nil {
+		return nil, fmt.Errorf("failed to parse team records: %w", err)
+	}
+
+	return teams, nil
+}
+
+func (r *TeamRepository) CreateTeamMember(ctx context.Context, member *models.TeamMember) error {
+	member.CreatedAt = time.Now()
+	member.UpdatedAt = time.Now()
+
+	_, err := r.collection.InsertOne(ctx, member)
+	if err != nil {
+		if mongo.IsDuplicateKeyError(err) {
+			return repository.ErrAlreadyInTeam
+		}
+		return fmt.Errorf("failed to create team member: %w", err)
+	}
+	return nil
+}
+
+func (r *TeamRepository) GetTeamMember(ctx context.Context, id string) (*models.TeamMember, error) {
+	oid, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, repository.ErrNotFound
+	}
+
+	var member models.TeamMember
+	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&member)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, repository.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to fetch team member: %w", err)
+	}
+
+	return &member, nil
 }

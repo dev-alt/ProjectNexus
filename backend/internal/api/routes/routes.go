@@ -1,4 +1,4 @@
-﻿// internal/api/routes/routes.go
+﻿// Package routes internal/api/routes/routes.go
 package routes
 
 import (
@@ -18,19 +18,21 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 	projectRepo := mongorepo.NewProjectRepository(db)
 	documentRepo := mongorepo.NewDocumentRepository(db)
 	teamRepo := mongorepo.NewTeamRepository(db)
+	teamMemberRepo := mongorepo.NewTeamMemberRepository(db) // NEW
 
 	// Initialize services
 	config_ := config.Load()
 	authService := services.NewAuthService(userRepo, config_.JWTSecret)
 	projectService := services.NewProjectService(projectRepo, userRepo)
 	documentService := services.NewDocumentService(documentRepo, projectRepo)
-	teamService := services.NewTeamService(teamRepo, projectRepo, userRepo)
-
+	teamService := services.NewTeamService(teamRepo, teamMemberRepo, projectRepo, userRepo)
+	
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	projectHandler := handlers.NewProjectHandler(projectService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
 	teamHandler := handlers.NewTeamHandler(teamService)
+
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -67,27 +69,46 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 				projects.GET("/:id", projectHandler.GetProject)
 				projects.PUT("/:id", projectHandler.UpdateProject)
 				projects.DELETE("/:id", projectHandler.DeleteProject)
-				projects.POST("/:id/team", projectHandler.AddTeamMember)
-				projects.DELETE("/:id/team/:memberId", projectHandler.RemoveTeamMember)
 
-				// Team routes within projects
-				projects.GET("/:projectId/team", teamHandler.GetProjectTeam)
-				projects.POST("/:projectId/team", teamHandler.AddTeamMember)
-				projects.PUT("/:projectId/team/:id", teamHandler.UpdateTeamMember)
-				projects.DELETE("/:projectId/team/:id", teamHandler.RemoveTeamMember)
-				projects.GET("/:projectId/team/:id", teamHandler.GetTeamMember)
+				// Team routes - Using :id consistently
+				team := projects.Group("/:id/team")
+				{
+					team.GET("", teamHandler.GetProjectTeam)
+					team.POST("", teamHandler.AddTeamMember)
+					team.GET("/:memberId", teamHandler.GetTeamMember)
+					team.PUT("/:memberId", teamHandler.UpdateTeamMember)
+					team.DELETE("/:memberId", teamHandler.RemoveTeamMember)
+				}
 			}
-
-			// Document routes
-			documents := protected.Group("/documents")
+			// Teams routes
+			teams := protected.Group("/teams")
 			{
-				documents.POST("", documentHandler.CreateDocument)
-				documents.GET("", documentHandler.ListDocuments)
-				documents.GET("/:id", documentHandler.GetDocument)
-				documents.PUT("/:id", documentHandler.UpdateDocument)
-				documents.DELETE("/:id", documentHandler.DeleteDocument)
-				documents.GET("/:id/versions", documentHandler.GetDocumentVersions)
-				documents.GET("/project/:projectId", documentHandler.GetProjectDocuments)
+				teams.POST("", teamHandler.CreateTeam)
+				teams.GET("", teamHandler.GetAllTeams)
+				teams.GET("/:id", teamHandler.GetTeam)
+				teams.PUT("/:id", teamHandler.UpdateTeam)
+				teams.DELETE("/:id", teamHandler.DeleteTeam)
+
+				// Team members routes
+				members := teams.Group("/:id/members")
+				{
+					members.GET("", teamHandler.GetTeamMembers)
+					members.POST("", teamHandler.AddTeamMember)
+					members.GET("/:memberId", teamHandler.GetTeamMember)
+					members.PUT("/:memberId", teamHandler.UpdateTeamMember)
+					members.DELETE("/:memberId", teamHandler.RemoveTeamMember)
+				}
+				// Document routes
+				documents := protected.Group("/documents")
+				{
+					documents.POST("", documentHandler.CreateDocument)
+					documents.GET("", documentHandler.ListDocuments)
+					documents.GET("/:id", documentHandler.GetDocument)
+					documents.PUT("/:id", documentHandler.UpdateDocument)
+					documents.DELETE("/:id", documentHandler.DeleteDocument)
+					documents.GET("/:id/versions", documentHandler.GetDocumentVersions)
+					documents.GET("/project/:id", documentHandler.GetProjectDocuments)
+				}
 			}
 		}
 	}

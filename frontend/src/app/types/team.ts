@@ -15,3 +15,24 @@ export interface TeamMember {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface Team {
+    id: string;
+    name: string;
+    description: string;
+    members: TeamMember[];
+    lead: string;
+    createdAt: string;
+    updatedAt: string;
+    projectCount: number;
+}
+
+export interface TeamInput {
+    name: string;
+    description: string;
+}
+
+export interface TeamMemberInput {
+    userId: string;
+    role: TeamMemberRole;
+}

@@ -37,10 +37,25 @@ type DocumentRepository interface {
 	GetVersions(ctx context.Context, documentID string) ([]*models.DocumentVersion, error)
 }
 type TeamRepository interface {
+	Create(ctx context.Context, member *models.Team) error
+	GetByID(ctx context.Context, id string) (*models.TeamMember, error)
+	GetByProjectAndUser(ctx context.Context, projectID, userID string) (*models.TeamMember, error)
+	GetProjectMembers(ctx context.Context, projectID string) ([]*models.TeamMember, error)
+	Update(ctx context.Context, member *models.TeamMember) error
+	Delete(ctx context.Context, id string) error
+	GetAll(ctx context.Context) ([]*models.Team, error)
+	CreateTeamMember(ctx context.Context, member *models.TeamMember) error
+	GetTeamMember(ctx context.Context, id string) (*models.TeamMember, error)
+}
+
+type TeamMemberRepository interface {
 	Create(ctx context.Context, member *models.TeamMember) error
 	GetByID(ctx context.Context, id string) (*models.TeamMember, error)
 	GetByProjectAndUser(ctx context.Context, projectID, userID string) (*models.TeamMember, error)
 	GetProjectMembers(ctx context.Context, projectID string) ([]*models.TeamMember, error)
 	Update(ctx context.Context, member *models.TeamMember) error
 	Delete(ctx context.Context, id string) error
+	GetByTeamID(ctx context.Context, teamID string) ([]*models.TeamMember, error)
+	CreateTeamMember(ctx context.Context, member *models.TeamMember) error
+	GetTeamMember(ctx context.Context, id string) (*models.TeamMember, error)
 }

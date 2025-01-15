@@ -1,9 +1,10 @@
-﻿package middleware
+﻿package tests
 
 import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"projectnexus/internal/middleware"
 	"projectnexus/internal/models"
 	"testing"
 
@@ -52,7 +53,7 @@ func TestAuthMiddleware(t *testing.T) {
 		w := httptest.NewRecorder()
 		c, r := gin.CreateTestContext(w)
 
-		r.Use(AuthMiddleware(mockAuth))
+		r.Use(middleware.AuthMiddleware(mockAuth))
 		r.GET("/test", func(c *gin.Context) {
 			u, exists := c.Get("user")
 			assert.True(t, exists)

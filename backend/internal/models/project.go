@@ -15,7 +15,7 @@ const (
 	ProjectStatusCompleted  ProjectStatus = "Completed"
 )
 
-// ValidateProjectStatus checks if the given status is valid
+// IsValid ValidateProjectStatus checks if the given status is valid
 func (s ProjectStatus) IsValid() bool {
 	switch s {
 	case ProjectStatusPlanning,

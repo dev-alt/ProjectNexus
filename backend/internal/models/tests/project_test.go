@@ -1,12 +1,13 @@
 // internal/models/project_test.go
-package models
+package tests
 
 import (
 	"github.com/stretchr/testify/assert"
+	"projectnexus/internal/models"
 	"testing"
 )
 
-func statusPtr(s ProjectStatus) *ProjectStatus {
+func statusPtr(s models.ProjectStatus) *models.ProjectStatus {
 	return &s
 }
 
@@ -16,37 +17,37 @@ func intPtr(i int) *int {
 func TestProjectStatus_IsValid(t *testing.T) {
 	tests := []struct {
 		name   string
-		status ProjectStatus
+		status models.ProjectStatus
 		want   bool
 	}{
 		{
 			name:   "valid status - planning",
-			status: ProjectStatusPlanning,
+			status: models.ProjectStatusPlanning,
 			want:   true,
 		},
 		{
 			name:   "valid status - in progress",
-			status: ProjectStatusInProgress,
+			status: models.ProjectStatusInProgress,
 			want:   true,
 		},
 		{
 			name:   "valid status - review",
-			status: ProjectStatusReview,
+			status: models.ProjectStatusReview,
 			want:   true,
 		},
 		{
 			name:   "valid status - completed",
-			status: ProjectStatusCompleted,
+			status: models.ProjectStatusCompleted,
 			want:   true,
 		},
 		{
 			name:   "invalid status",
-			status: ProjectStatus("Invalid Status"),
+			status: models.ProjectStatus("Invalid Status"),
 			want:   false,
 		},
 		{
 			name:   "empty status",
-			status: ProjectStatus(""),
+			status: models.ProjectStatus(""),
 			want:   false,
 		},
 	}
@@ -61,15 +62,15 @@ func TestProjectStatus_IsValid(t *testing.T) {
 func TestProject_Validation(t *testing.T) {
 	tests := []struct {
 		name    string
-		project Project
+		project models.Project
 		wantErr bool
 	}{
 		{
 			name: "valid project",
-			project: Project{
+			project: models.Project{
 				Name:        "Test Project",
 				Description: "Test Description",
-				Status:      ProjectStatusPlanning,
+				Status:      models.ProjectStatusPlanning,
 				Progress:    0,
 				Team:        []string{"user1", "user2"},
 				CreatedBy:   "user1",
@@ -78,10 +79,10 @@ func TestProject_Validation(t *testing.T) {
 		},
 		{
 			name: "invalid status",
-			project: Project{
+			project: models.Project{
 				Name:        "Test Project",
 				Description: "Test Description",
-				Status:      ProjectStatus("Invalid"),
+				Status:      models.ProjectStatus("Invalid"),
 				Progress:    0,
 				Team:        []string{"user1"},
 				CreatedBy:   "user1",
@@ -90,10 +91,10 @@ func TestProject_Validation(t *testing.T) {
 		},
 		{
 			name: "invalid progress - negative",
-			project: Project{
+			project: models.Project{
 				Name:        "Test Project",
 				Description: "Test Description",
-				Status:      ProjectStatusPlanning,
+				Status:      models.ProjectStatusPlanning,
 				Progress:    -1,
 				Team:        []string{"user1"},
 				CreatedBy:   "user1",
@@ -102,10 +103,10 @@ func TestProject_Validation(t *testing.T) {
 		},
 		{
 			name: "invalid progress - over 100",
-			project: Project{
+			project: models.Project{
 				Name:        "Test Project",
 				Description: "Test Description",
-				Status:      ProjectStatusPlanning,
+				Status:      models.ProjectStatusPlanning,
 				Progress:    101,
 				Team:        []string{"user1"},
 				CreatedBy:   "user1",
@@ -129,42 +130,42 @@ func TestProject_Validation(t *testing.T) {
 func TestCreateProjectInput_Validation(t *testing.T) {
 	tests := []struct {
 		name  string
-		input CreateProjectInput
+		input models.CreateProjectInput
 		valid bool
 	}{
 		{
 			name: "valid input",
-			input: CreateProjectInput{
+			input: models.CreateProjectInput{
 				Name:        "Test Project",
 				Description: "Test Description",
-				Status:      ProjectStatusPlanning,
+				Status:      models.ProjectStatusPlanning,
 			},
 			valid: true,
 		},
 		{
 			name: "empty name",
-			input: CreateProjectInput{
+			input: models.CreateProjectInput{
 				Name:        "",
 				Description: "Test Description",
-				Status:      ProjectStatusPlanning,
+				Status:      models.ProjectStatusPlanning,
 			},
 			valid: false,
 		},
 		{
 			name: "empty description",
-			input: CreateProjectInput{
+			input: models.CreateProjectInput{
 				Name:        "Test Project",
 				Description: "",
-				Status:      ProjectStatusPlanning,
+				Status:      models.ProjectStatusPlanning,
 			},
 			valid: false,
 		},
 		{
 			name: "invalid status",
-			input: CreateProjectInput{
+			input: models.CreateProjectInput{
 				Name:        "Test Project",
 				Description: "Test Description",
-				Status:      ProjectStatus("Invalid"),
+				Status:      models.ProjectStatus("Invalid"),
 			},
 			valid: false,
 		},
@@ -185,22 +186,22 @@ func TestCreateProjectInput_Validation(t *testing.T) {
 func TestUpdateProjectInput_Validation(t *testing.T) {
 	tests := []struct {
 		name  string
-		input UpdateProjectInput
+		input models.UpdateProjectInput
 		valid bool
 	}{
 		{
 			name: "valid input - all fields",
-			input: UpdateProjectInput{
+			input: models.UpdateProjectInput{
 				Name:        stringPtr("Updated Project"),
 				Description: stringPtr("Updated Description"),
-				Status:      statusPtr(ProjectStatusInProgress),
+				Status:      statusPtr(models.ProjectStatusInProgress),
 				Progress:    intPtr(50),
 			},
 			valid: true,
 		},
 		{
 			name: "valid input - partial update",
-			input: UpdateProjectInput{
+			input: models.UpdateProjectInput{
 				Name:     stringPtr("Updated Project"),
 				Progress: intPtr(75),
 			},
@@ -208,15 +209,15 @@ func TestUpdateProjectInput_Validation(t *testing.T) {
 		},
 		{
 			name: "invalid progress",
-			input: UpdateProjectInput{
+			input: models.UpdateProjectInput{
 				Progress: intPtr(101),
 			},
 			valid: false,
 		},
 		{
 			name: "invalid status",
-			input: UpdateProjectInput{
-				Status: statusPtr(ProjectStatus("Invalid")),
+			input: models.UpdateProjectInput{
+				Status: statusPtr("Invalid"),
 			},
 			valid: false,
 		},

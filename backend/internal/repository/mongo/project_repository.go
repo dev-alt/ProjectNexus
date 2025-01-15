@@ -3,6 +3,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -65,7 +66,12 @@ func (r *ProjectRepository) GetByUser(ctx context.Context, userID string) ([]*mo
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			log.Printf("Error closing cursor: %v", err)
+		}
+	}(cursor, ctx)
 
 	var projects []*models.Project
 	if err = cursor.All(ctx, &projects); err != nil {
@@ -128,7 +134,12 @@ func (r *ProjectRepository) List(ctx context.Context, filter interface{}) ([]*mo
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			log.Printf("Error closing cursor: %v", err)
+		}
+	}(cursor, ctx)
 
 	var projects []*models.Project
 	if err = cursor.All(ctx, &projects); err != nil {
@@ -151,7 +162,7 @@ func (r *ProjectRepository) CheckUserAccess(ctx context.Context, projectID strin
 	var project models.Project
 	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&project)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		if errors.Is(err, mongo.ErrNoDocuments) {
 			log.Printf("Project not found: %s", projectID)
 			return false, repository.ErrProjectNotFound
 		}
