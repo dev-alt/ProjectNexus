@@ -1,4 +1,4 @@
-﻿// app/(protected)/projects/[id]/team/page.tsx
+﻿// app/(protected)/projects/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,12 +10,15 @@ import {TeamMemberForm} from '@/components/team/TeamMemberForm';
 import { useTeam } from '@/lib/hooks/use-team';
 import {TeamMember, TeamMemberRole, TeamMemberStatus} from '@/types/team';
 import { useToast } from '@/lib/hooks/use-toast';
+import { useParams } from 'next/navigation';
 
-export default function TeamPage({ params }: { params: { id: string } }) {
+export default function TeamPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
     const { toast } = useToast();
+    const params = useParams();
+    const teamId = params.id as string;
 
     const {
         members,
@@ -24,7 +27,7 @@ export default function TeamPage({ params }: { params: { id: string } }) {
         addMember,
         updateMember,
         removeMember
-    } = useTeam(params.id);
+    } = useTeam(teamId); // Use the teamId here
 
     useEffect(() => {
         refreshTeam().then(r => r);
