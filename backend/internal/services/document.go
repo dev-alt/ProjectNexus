@@ -1,4 +1,4 @@
-// Package services internal/services/document.go
+﻿// Package services internal/services/document.go
 package services
 
 import (
@@ -106,6 +106,7 @@ func (s *documentService) CreateDocument(ctx context.Context, input models.Creat
 		Type:      input.Type,
 		Content:   input.Content,
 		Version:   1,
+		Status:    input.Status,
 		CreatedBy: userID,
 	}
 
@@ -193,7 +194,9 @@ func (s *documentService) UpdateDocument(ctx context.Context, id string, input m
 	if input.Content != nil {
 		doc.Content = *input.Content
 	}
-
+	if input.Status != nil {
+		doc.Status = *input.Status
+	}
 	// Ensure CreatedBy is still set
 	doc.CreatedBy = userID
 

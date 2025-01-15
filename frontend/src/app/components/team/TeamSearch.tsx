@@ -57,7 +57,7 @@ export const TeamTable: React.FC<TeamTableProps> = ({ members, onEditMember }) =
                         <div className="flex items-center">
                             <Image
                                 className="h-8 w-8 rounded-full"
-                                src={member.avatar}
+                                src={member.avatar as string}
                                 alt={`${member.name}'s avatar`}
                                 width={32}
                                 height={32}
@@ -82,7 +82,7 @@ export const TeamTable: React.FC<TeamTableProps> = ({ members, onEditMember }) =
                     </td>
                     <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
-                            {member.projects.map((project, index) => (
+                            {member.projects?.map((project, index) => (
                                 <span
                                     key={index}
                                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200"

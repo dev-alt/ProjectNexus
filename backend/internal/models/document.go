@@ -1,4 +1,4 @@
-// Package models internal/models/document.go
+﻿// Package models internal/models/document.go
 package models
 
 import (
@@ -16,16 +16,26 @@ const (
 	DocumentTypeOther DocumentType = "Other"
 )
 
+type DocumentStatus string
+
+const (
+	DocumentStatusDraft    DocumentStatus = "Draft"
+	DocumentStatusInReview DocumentStatus = "In Review"
+	DocumentStatusApproved DocumentStatus = "Approved"
+	DocumentStatusRejected DocumentStatus = "Rejected"
+)
+
 type Document struct {
-	ID        string       `bson:"_id,omitempty" json:"id"`
-	ProjectID string       `bson:"project_id" json:"projectId"`
-	Title     string       `bson:"title" json:"title"`
-	Type      DocumentType `bson:"type" json:"type"`
-	Content   string       `bson:"content" json:"content"`
-	Version   int          `bson:"version" json:"version"`
-	CreatedBy string       `bson:"created_by" json:"createdBy"`
-	CreatedAt time.Time    `bson:"created_at" json:"createdAt"`
-	UpdatedAt time.Time    `bson:"updated_at" json:"updatedAt"`
+	ID        string         `bson:"_id,omitempty" json:"id"`
+	ProjectID string         `bson:"project_id" json:"projectId"`
+	Title     string         `bson:"title" json:"title"`
+	Type      DocumentType   `bson:"type" json:"type"`
+	Content   string         `bson:"content" json:"content"`
+	Version   int            `bson:"version" json:"version"`
+	Status    DocumentStatus `bson:"status" json:"status"` // Add status field
+	CreatedBy string         `bson:"created_by" json:"createdBy"`
+	CreatedAt time.Time      `bson:"created_at" json:"createdAt"`
+	UpdatedAt time.Time      `bson:"updated_at" json:"updatedAt"`
 }
 
 type DocumentVersion struct {
@@ -38,16 +48,18 @@ type DocumentVersion struct {
 }
 
 type CreateDocumentInput struct {
-	ProjectID string       `json:"projectId" binding:"required"`
-	Title     string       `json:"title" binding:"required"`
-	Type      DocumentType `json:"type" binding:"required"`
-	Content   string       `json:"content" binding:"required"`
+	ProjectID string         `json:"projectId" binding:"required"`
+	Title     string         `json:"title" binding:"required"`
+	Type      DocumentType   `json:"type" binding:"required"`
+	Content   string         `json:"content" binding:"required"`
+	Status    DocumentStatus `json:"status" binding:"required"`
 }
 
 type UpdateDocumentInput struct {
-	Title   *string       `json:"title,omitempty"`
-	Type    *DocumentType `json:"type,omitempty"`
-	Content *string       `json:"content,omitempty"`
+	Title   *string         `json:"title,omitempty"`
+	Type    *DocumentType   `json:"type,omitempty"`
+	Content *string         `json:"content,omitempty"`
+	Status  *DocumentStatus `json:"status,omitempty"`
 }
 
 func (i *UpdateDocumentInput) Validate() error {
@@ -87,6 +99,9 @@ func (d *Document) Validate() error {
 	}
 	if d.Version < 0 {
 		return fmt.Errorf("version cannot be negative")
+	}
+	if d.Status == "" {
+		return fmt.Errorf("status is required")
 	}
 	return nil
 }

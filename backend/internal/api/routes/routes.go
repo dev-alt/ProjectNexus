@@ -17,18 +17,20 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 	userRepo := mongorepo.NewUserRepository(db)
 	projectRepo := mongorepo.NewProjectRepository(db)
 	documentRepo := mongorepo.NewDocumentRepository(db)
+	teamRepo := mongorepo.NewTeamRepository(db)
 
 	// Initialize services
 	config_ := config.Load()
 	authService := services.NewAuthService(userRepo, config_.JWTSecret)
 	projectService := services.NewProjectService(projectRepo, userRepo)
 	documentService := services.NewDocumentService(documentRepo, projectRepo)
+	teamService := services.NewTeamService(teamRepo, projectRepo, userRepo)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	projectHandler := handlers.NewProjectHandler(projectService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
-
+	teamHandler := handlers.NewTeamHandler(teamService)
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -67,6 +69,13 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 				projects.DELETE("/:id", projectHandler.DeleteProject)
 				projects.POST("/:id/team", projectHandler.AddTeamMember)
 				projects.DELETE("/:id/team/:memberId", projectHandler.RemoveTeamMember)
+
+				// Team routes within projects
+				projects.GET("/:projectId/team", teamHandler.GetProjectTeam)
+				projects.POST("/:projectId/team", teamHandler.AddTeamMember)
+				projects.PUT("/:projectId/team/:id", teamHandler.UpdateTeamMember)
+				projects.DELETE("/:projectId/team/:id", teamHandler.RemoveTeamMember)
+				projects.GET("/:projectId/team/:id", teamHandler.GetTeamMember)
 			}
 
 			// Document routes
@@ -78,8 +87,6 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 				documents.PUT("/:id", documentHandler.UpdateDocument)
 				documents.DELETE("/:id", documentHandler.DeleteDocument)
 				documents.GET("/:id/versions", documentHandler.GetDocumentVersions)
-
-				// Project-specific document routes
 				documents.GET("/project/:projectId", documentHandler.GetProjectDocuments)
 			}
 		}

@@ -1,11 +1,17 @@
 ﻿// types/team.ts
+export type TeamMemberStatus = 'Active' | 'Away' | 'Offline';
+export type TeamMemberRole = 'owner' | 'member' | 'viewer';
+
 export interface TeamMember {
-    id: number;
+    id: string;
+    userId: string;
     name: string;
-    role: string;
     email: string;
-    department: string;
-    projects: string[];
-    avatar: string;
-    status: 'Active' | 'Away' | 'Offline';
+    role: TeamMemberRole;
+    department?: string;
+    status: TeamMemberStatus;
+    avatar?: string;
+    projects?: string[];
+    createdAt: string;
+    updatedAt: string;
 }

@@ -1,4 +1,4 @@
-package repository
+﻿package repository
 
 import (
 	"context"
@@ -35,4 +35,12 @@ type DocumentRepository interface {
 	Update(ctx context.Context, document *models.Document) error
 	Delete(ctx context.Context, id string) error
 	GetVersions(ctx context.Context, documentID string) ([]*models.DocumentVersion, error)
+}
+type TeamRepository interface {
+	Create(ctx context.Context, member *models.TeamMember) error
+	GetByID(ctx context.Context, id string) (*models.TeamMember, error)
+	GetByProjectAndUser(ctx context.Context, projectID, userID string) (*models.TeamMember, error)
+	GetProjectMembers(ctx context.Context, projectID string) ([]*models.TeamMember, error)
+	Update(ctx context.Context, member *models.TeamMember) error
+	Delete(ctx context.Context, id string) error
 }

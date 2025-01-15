@@ -1,4 +1,4 @@
-// Package mongo internal/repository/mongo/document_repository.go
+﻿// Package mongo internal/repository/mongo/document_repository.go
 package mongo
 
 import (
@@ -134,6 +134,7 @@ func (r *DocumentRepository) Update(ctx context.Context, doc *models.Document) e
 			"type":       doc.Type,
 			"content":    doc.Content,
 			"version":    doc.Version,
+			"status":     doc.Status,
 			"updated_at": doc.UpdatedAt,
 		},
 	}
@@ -195,6 +196,10 @@ func (r *DocumentRepository) Create(ctx context.Context, doc *models.Document) e
 	doc.CreatedAt = time.Now()
 	doc.UpdatedAt = time.Now()
 	doc.Version = 1
+
+	if doc.Status == "" {
+		doc.Status = models.DocumentStatusDraft
+	}
 
 	result, err := r.documents.InsertOne(ctx, doc)
 	if err != nil {

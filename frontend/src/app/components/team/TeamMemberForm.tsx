@@ -1,27 +1,30 @@
-﻿// components/team/TeamMemberForm.tsx
-import React from 'react';
+﻿import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import Button from '@/components/ui/Button';
-import {TeamMember} from "@/types/team";
+import { TeamMember, TeamMemberRole, TeamMemberStatus } from '@/types/team';
 
 interface TeamMemberFormProps {
     member?: TeamMember;
-    onSubmit: (data: Partial<TeamMember>) => void;
+    onSubmit: (data: { email?: string; role?: TeamMemberRole; status?: TeamMemberStatus }) => Promise<void>;
     onClose: () => void;
     isLoading?: boolean;
 }
 
-const departments = [
-    { value: 'Engineering', label: 'Engineering' },
-    { value: 'Design', label: 'Design' },
-    { value: 'Management', label: 'Management' },
-    { value: 'Marketing', label: 'Marketing' },
-    { value: 'Sales', label: 'Sales' },
+interface FormData {
+    email?: string;
+    role: TeamMemberRole;
+    status: TeamMemberStatus;
+}
+
+const roles: { value: TeamMemberRole; label: string }[] = [
+    { value: 'owner', label: 'Owner' },
+    { value: 'member', label: 'Member' },
+    { value: 'viewer', label: 'Viewer' },
 ];
 
-const statusOptions = [
+const statuses: { value: TeamMemberStatus; label: string }[] = [
     { value: 'Active', label: 'Active' },
     { value: 'Away', label: 'Away' },
     { value: 'Offline', label: 'Offline' },
@@ -33,24 +36,36 @@ export const TeamMemberForm: React.FC<TeamMemberFormProps> = ({
                                                                   onClose,
                                                                   isLoading = false,
                                                               }) => {
-    const [formData, setFormData] = React.useState({
-        name: member?.name || '',
-        email: member?.email || '',
-        role: member?.role || '',
-        department: member?.department || departments[0].value,
+    const [formData, setFormData] = useState<FormData>({
+        email: '',
+        role: member?.role || 'member',
         status: member?.status || 'Active',
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        try {
+            await onSubmit(formData);
+            onClose();
+        } catch (error) {
+            console.error('Failed to submit:', error);
+        }
     };
 
-    const handleChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-    ) => {
-        const { name, value } = e.target;
-        setFormData((prev) => ({ ...prev, [name]: value }));
+    const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newRole = e.target.value as TeamMemberRole;
+        setFormData(prev => ({
+            ...prev,
+            role: newRole
+        }));
+    };
+
+    const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newStatus = e.target.value as TeamMemberStatus;
+        setFormData(prev => ({
+            ...prev,
+            status: newStatus
+        }));
     };
 
     return (
@@ -69,46 +84,36 @@ export const TeamMemberForm: React.FC<TeamMemberFormProps> = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <Input
-                        label="Name"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        required
-                    />
+                    {!member && (
+                        <Input
+                            label="Email"
+                            name="email"
+                            type="email"
+                            placeholder="Enter team member's email"
+                            required
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
+                    )}
 
-                    <Input
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                    />
-
-                    <Input
+                    <Select
                         label="Role"
                         name="role"
                         value={formData.role}
-                        onChange={handleChange}
+                        onChange={handleRoleChange}
+                        options={roles}
                         required
                     />
 
-                    <Select
-                        label="Department"
-                        name="department"
-                        value={formData.department}
-                        onChange={handleChange}
-                        options={departments}
-                    />
-
-                    <Select
-                        label="Status"
-                        name="status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        options={statusOptions}
-                    />
+                    {member && (
+                        <Select
+                            label="Status"
+                            name="status"
+                            value={formData.status}
+                            onChange={handleStatusChange}
+                            options={statuses}
+                            required
+                        />
+                    )}
 
                     <div className="flex justify-end space-x-3 pt-4">
                         <Button
@@ -129,4 +134,4 @@ export const TeamMemberForm: React.FC<TeamMemberFormProps> = ({
             </div>
         </div>
     );
-}
+};

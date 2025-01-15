@@ -1,18 +1,9 @@
-﻿import React from 'react';
+﻿// app/components/ui/DocumentViewer.tsx
+import React from 'react';
 import { X, Edit2, Clock, User } from 'lucide-react';
-import Button from './Button';
-import StatusBadge from './StatusBadge';
-
-interface Document {
-    id: number;
-    title: string;
-    type: string;
-    project: string;
-    content: string;
-    lastModified: string;
-    author: string;
-    status: string;
-}
+import Button from '@/components/ui/Button';
+import StatusBadge from '@/components/ui/StatusBadge';
+import { Document } from '@/types/documents';
 
 interface DocumentViewerProps {
     document: Document;
@@ -35,7 +26,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         <div className="flex items-center space-x-4 mt-2">
                             <span className="text-gray-500 text-sm">{document.type}</span>
                             <span className="text-gray-300">•</span>
-                            <span className="text-gray-500 text-sm">{document.project}</span>
+                            <span className="text-gray-500 text-sm">Project ID: {document.projectId}</span>
                             <span className="text-gray-300">•</span>
                             <StatusBadge status={document.status} />
                         </div>
@@ -53,13 +44,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                     <div className="flex items-center space-x-4">
                         <div className="flex items-center text-gray-600 dark:text-gray-300">
                             <User className="h-4 w-4 mr-2" />
-                            <span className="text-sm">{document.author}</span>
+                            <span className="text-sm">Created by {document.createdBy}</span>
                         </div>
                         <div className="flex items-center text-gray-600 dark:text-gray-300">
                             <Clock className="h-4 w-4 mr-2" />
                             <span className="text-sm">
-                {new Date(document.lastModified).toLocaleString()}
-              </span>
+                                Last modified: {new Date(document.updatedAt).toLocaleString()}
+                            </span>
                         </div>
                     </div>
                     <Button
@@ -75,6 +66,16 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 <div className="p-6">
                     <div className="prose dark:prose-invert max-w-none">
                         <div className="whitespace-pre-wrap">{document.content}</div>
+                    </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                    <div className="text-sm text-gray-500">
+                        Version: {document.version}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                        Created: {new Date(document.createdAt).toLocaleString()}
                     </div>
                 </div>
             </div>

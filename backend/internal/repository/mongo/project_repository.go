@@ -1,4 +1,4 @@
-// internal/repository/mongo/project_repository.go
+// Package mongo internal/repository/mongo/project_repository.go
 package mongo
 
 import (
