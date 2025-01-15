@@ -39,7 +39,12 @@ const mapTeamMemberToPresent = (member: { id: string; name: string; role: string
     avatar: `/api/placeholder/32/32`
 });
 
-export default function ProjectPresentation({ params }: { params: { id: string }}) {
+interface PresentPageProps {
+    params: {
+        id: string;
+    };
+}
+export default function ProjectPresentation({ params }: PresentPageProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [activeSection, setActiveSection] = useState<string>('overview');
