@@ -24,13 +24,15 @@ jobs:
           load: true
           tags: projectnexus-frontend:latest
 
-      - name: Build backend image
+      - name: Build backend image with no-cache
         uses: docker/build-push-action@v4
         with:
           context: ./backend
           file: ./backend/Dockerfile
           load: true
           tags: projectnexus-backend:latest
+          # Force rebuild of the backend image every time
+          no-cache: true
 
       - name: Save frontend image as tar archive
         run: docker save -o frontend.tar projectnexus-frontend:latest
