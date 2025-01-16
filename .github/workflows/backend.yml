@@ -1,0 +1,150 @@
+﻿name: Deploy Backend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build backend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          load: true
+          tags: projectnexus-backend:latest
+          no-cache: true
+
+      - name: Save backend image as tar archive
+        run: docker save -o backend.tar projectnexus-backend:latest
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment files
+        env:
+          MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        run: |
+          # Create docker-compose.yml
+          cat > docker-compose.yml << 'EOL'
+          services:
+            backend:
+              image: projectnexus-backend:latest
+              ports:
+                - "8085:8085"
+              environment:
+                - MONGODB_URI=mongodb://projectnexus:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/projectnexus?authSource=admin
+                - JWT_SECRET=${JWT_SECRET}
+              depends_on:
+                mongodb:
+                  condition: service_healthy
+              networks:
+                - projectnexus-network
+              restart: unless-stopped
+
+            mongodb:
+              image: mongo:latest
+              ports:
+                - "27017:27017"
+              environment:
+                - MONGO_INITDB_ROOT_USERNAME=root
+                - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+                - MONGO_INITDB_DATABASE=projectnexus
+              volumes:
+                - mongodb_data:/data/db:rw
+                - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+              networks:
+                - projectnexus-network
+              healthcheck:
+                test: echo 'db.runCommand("ping").ok' | mongosh mongodb://root:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27017/admin?authSource=admin --quiet
+                interval: 10s
+                timeout: 10s
+                retries: 5
+                start_period: 40s
+              command: ["--auth"]
+              restart: unless-stopped
+
+          networks:
+            projectnexus-network:
+              driver: bridge
+
+          volumes:
+            mongodb_data:
+              driver: local
+          EOL
+
+          # Create mongo initialization script
+          cat > mongo-init.js << 'EOL'
+          db = db.getSiblingDB('admin');
+          db.auth('root', process.env.MONGO_INITDB_ROOT_PASSWORD);
+
+          db = db.getSiblingDB('projectnexus');
+          db.createUser({
+              user: "projectnexus",
+              pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+              roles: [{ role: "readWrite", db: "projectnexus" }]
+          });
+
+          // Create indexes
+          db.users.createIndex({ "email": 1 }, { unique: true });
+          db.projects.createIndex({ "created_by": 1 });
+          db.documents.createIndex({ "project_id": 1 });
+          EOL
+
+          # Create .env file
+          cat > .env << EOL
+          MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+          JWT_SECRET=${JWT_SECRET}
+          EOL
+
+          # Verify files were created
+          ls -la docker-compose.yml mongo-init.js .env
+
+      - name: Deploy to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          # Transfer files
+          echo "Transferring files..."
+          scp backend.tar docker-compose.yml mongo-init.js .env $DEPLOY_USER@$DEPLOY_HOST:~/
+
+          # Deploy
+          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            echo "Loading backend image..."
+            docker load -i backend.tar
+
+            echo "Stopping existing services..."
+            docker-compose down --volumes --remove-orphans
+
+            echo "Starting services..."
+            docker-compose up -d
+
+            echo "Cleaning up..."
+            docker image prune -f
+            rm backend.tar
+
+            echo "Checking service status..."
+            docker-compose ps
+            docker-compose logs
+          EOF
