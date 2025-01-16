@@ -47,27 +47,30 @@ jobs:
         run: |
           # Create docker-compose.yml for frontend only
           cat > docker-compose.yml << 'EOL'
+          name: frontend
+
           services:
             frontend:
               image: projectnexus-frontend:latest
+              container_name: projectnexus_frontend
               ports:
                 - "3050:3050"
               environment:
                 - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
               restart: unless-stopped
+              networks:
+                - projectnexus-network
 
           networks:
-            default:
-              driver: bridge
+            projectnexus-network:
+              name: projectnexus_network
+              external: true
           EOL
 
           # Create .env file
           cat > .env << EOL
           NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
           EOL
-
-          # Verify files were created
-          ls -la docker-compose.yml .env
 
       - name: Deploy to server
         env:
@@ -86,7 +89,7 @@ jobs:
             docker load -i frontend.tar
 
             echo "Stopping existing frontend service..."
-            docker-compose down --remove-orphans
+            docker-compose down
 
             echo "Starting frontend service..."
             docker-compose up -d
