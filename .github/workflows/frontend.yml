@@ -1,0 +1,101 @@
+﻿name: Deploy Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          load: true
+          tags: projectnexus-frontend:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+
+      - name: Save frontend image as tar archive
+        run: docker save -o frontend.tar projectnexus-frontend:latest
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create deployment files
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+        run: |
+          # Create docker-compose.yml for frontend only
+          cat > docker-compose.yml << 'EOL'
+          services:
+            frontend:
+              image: projectnexus-frontend:latest
+              ports:
+                - "3050:3050"
+              environment:
+                - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+              restart: unless-stopped
+
+          networks:
+            default:
+              driver: bridge
+          EOL
+
+          # Create .env file
+          cat > .env << EOL
+          NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+          EOL
+
+          # Verify files were created
+          ls -la docker-compose.yml .env
+
+      - name: Deploy to server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          # Transfer files
+          echo "Transferring files..."
+          scp frontend.tar docker-compose.yml .env $DEPLOY_USER@$DEPLOY_HOST:~/frontend/
+
+          # Deploy
+          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            cd ~/frontend
+          
+            echo "Loading frontend image..."
+            docker load -i frontend.tar
+
+            echo "Stopping existing frontend service..."
+            docker-compose down --remove-orphans
+
+            echo "Starting frontend service..."
+            docker-compose up -d
+
+            echo "Cleaning up..."
+            docker image prune -f
+            rm frontend.tar
+
+            echo "Checking service status..."
+            docker-compose ps
+            docker-compose logs frontend
+          EOF
