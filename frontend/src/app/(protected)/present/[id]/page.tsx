@@ -1,7 +1,7 @@
 // app/(protected)/present/[id]/page.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, {Suspense, useState} from 'react';
 import { useRouter } from 'next/navigation';
 import ProjectHeader from '@/components/present/ProjectHeader';
 import NavigationTabs from '@/components/present/NavigationTabs';
@@ -39,12 +39,14 @@ const mapTeamMemberToPresent = (member: { id: string; name: string; role: string
     avatar: `/api/placeholder/32/32`
 });
 
-type Props = {
-    params: { id: string }
+
+type PresentationPageProps = {
+    params: {
+        id: string;
+    };
 }
 
-export default function ProjectPresentation({ params }: Props) {
-    const { id } = params;
+export default function ProjectPresentation({ params }: PresentationPageProps) {   const { id } = params;
     const router = useRouter();
     const { toast } = useToast();
     const [activeSection, setActiveSection] = useState<string>('overview');
@@ -135,7 +137,12 @@ export default function ProjectPresentation({ params }: Props) {
     }
 
     return (
-        <div className="space-y-8 pb-8">
+        <Suspense fallback={
+            <div className="flex items-center justify-center h-96">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        }>
+            <div className="space-y-8 pb-8">
             <ProjectHeader
                 thumbnail={`/api/placeholder/800/400`}
                 name={project.name}
@@ -199,7 +206,7 @@ export default function ProjectPresentation({ params }: Props) {
                     }}
                 />
             )}
-        </div>
+            </div>
+        </Suspense>
     );
 }
-
