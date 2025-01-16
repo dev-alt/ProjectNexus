@@ -47,7 +47,7 @@ jobs:
         run: |
           # Create docker-compose.yml
           cat > docker-compose.yml << 'EOL'
-          name: backend
+          version: "3.8"
 
           services:
             backend:
@@ -151,5 +151,5 @@ jobs:
 
             echo "Checking service status..."
             docker-compose ps
-            docker-compose logs backend
+            docker-compose logs backend mongodb
           EOF
