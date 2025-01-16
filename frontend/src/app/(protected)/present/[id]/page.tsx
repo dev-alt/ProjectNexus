@@ -14,7 +14,7 @@ import { useProjects } from '@/lib/hooks/use-projects';
 import { useDocuments } from '@/lib/hooks/use-documents';
 import { useTeams } from '@/lib/hooks/use-teams';
 import { useToast } from '@/lib/hooks/use-toast';
-import { PresentPageProps, Project, APIDocument, PresentDocument, PresentTeamMember, ViewableItem } from '@/types/types';
+import {  Project, APIDocument, PresentDocument, PresentTeamMember, ViewableItem } from '@/types/types';
 import {Team} from "@/types/team";
 
 
@@ -39,9 +39,8 @@ const mapTeamMemberToPresent = (member: { id: string; name: string; role: string
     avatar: `/api/placeholder/32/32`
 });
 
-export default function ProjectPresentation({ params }: PresentPageProps) {
-    const { id } = params; // Destructure `id` directly from `params`
-
+export default function ProjectPresentation({ params }: { params: { id: string } }) {
+    const { id } = params; // `params` is now synchronous and resolved.
     const router = useRouter();
     const { toast } = useToast();
     const [activeSection, setActiveSection] = useState<string>('overview');

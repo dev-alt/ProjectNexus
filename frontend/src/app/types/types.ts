@@ -1,7 +1,7 @@
 ﻿import { ProjectData, Document, TeamMember, Mockup, TimelineEvent, ProjectMetric, ActivityItem, ViewableItem, Project } from '@/types/present';
 
 export interface PresentPageProps {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 export interface APIDocument {
     id: string;
