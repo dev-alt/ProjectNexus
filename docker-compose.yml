@@ -13,12 +13,13 @@
     ports:
       - "8085:8085"
     environment:
-      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_URI=mongodb://projectnexus:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/projectnexus?authSource=admin
       - JWT_SECRET=${JWT_SECRET}
       - GIN_MODE=release
       - ALLOWED_ORIGINS=https://project.chillotters.xyz
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
     networks:
       - projectnexus-network
 
@@ -29,11 +30,18 @@
     environment:
       - MONGO_INITDB_ROOT_USERNAME=root
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=projectnexus
     volumes:
       - mongodb_data:/data/db
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - projectnexus-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh mongodb://root:${MONGO_INITDB_ROOT_PASSWORD}@localhost:27017/admin?authSource=admin --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
 
 networks:
   projectnexus-network:

@@ -1,18 +1,18 @@
 ﻿db = db.getSiblingDB('admin');
 
-// Create admin user
+// Create root user (if not exists)
 db.createUser({
-    user: process.env.MONGO_ADMIN_USER,
-    pwd: process.env.MONGO_ADMIN_PASSWORD,
-    roles: [{ role: "userAdminAnyDatabase", db: "admin" }]
+    user: "root",
+    pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+    roles: [ { role: "root", db: "admin" } ]
 });
 
 db = db.getSiblingDB('projectnexus');
 
-// Create application user with limited privileges
+// Create application database and user
 db.createUser({
-    user: process.env.MONGO_APP_USER,
-    pwd: process.env.MONGO_APP_PASSWORD,
+    user: "projectnexus",
+    pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
     roles: [{ role: "readWrite", db: "projectnexus" }]
 });
 

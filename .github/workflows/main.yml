@@ -24,14 +24,13 @@ jobs:
           load: true
           tags: projectnexus-frontend:latest
 
-      - name: Build backend image with no-cache
+      - name: Build backend image
         uses: docker/build-push-action@v4
         with:
           context: ./backend
           file: ./backend/Dockerfile
           load: true
           tags: projectnexus-backend:latest
-          # Force rebuild of the backend image every time
           no-cache: true
 
       - name: Save frontend image as tar archive
@@ -43,7 +42,7 @@ jobs:
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.7.0
         with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}  # No passphrase needed
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       - name: Add server to known hosts
         run: |
@@ -53,38 +52,33 @@ jobs:
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
           MONGO_INITDB_ROOT_PASSWORD: ${{ secrets.MONGO_INITDB_ROOT_PASSWORD }}
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
-          # First create a .env file with our environment variables
+          # Create .env file
           cat << EOT > .env
-          MONGODB_URI=${MONGODB_URI}
           MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
           JWT_SECRET=${JWT_SECRET}
           NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
           EOT
           
-          # Transfer files to the server
-          scp -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
-          scp -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
-          scp -o StrictHostKeyChecking=no docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:~/docker-compose.yml
-          scp -o StrictHostKeyChecking=no .env $DEPLOY_USER@$DEPLOY_HOST:~/.env
+          # Transfer files
+          scp frontend.tar backend.tar docker-compose.yml mongo-init.js .env $DEPLOY_USER@$DEPLOY_HOST:~/
           
-          # SSH into the server and deploy
-          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
-            # Load Docker images
-            docker load -i ~/frontend.tar
-            docker load -i ~/backend.tar
+          # Deploy
+          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            # Load images
+            docker load -i frontend.tar
+            docker load -i backend.tar
           
-            # Stop and remove existing containers
-            docker-compose -f ~/docker-compose.yml down --remove-orphans
+            # Stop existing containers
+            docker-compose down --volumes --remove-orphans
           
-            # Start the services with env file
-            docker-compose -f ~/docker-compose.yml --env-file .env up -d
+            # Start services
+            docker-compose up -d
           
-            # Clean up unused images and tar files
+            # Clean up
             docker image prune -f
-            rm ~/frontend.tar ~/backend.tar ~/docker-compose.yml
+            rm frontend.tar backend.tar
           EOF
