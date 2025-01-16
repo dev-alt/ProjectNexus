@@ -40,6 +40,8 @@ const mapTeamMemberToPresent = (member: { id: string; name: string; role: string
 });
 
 export default function ProjectPresentation({ params }: PresentPageProps) {
+    const { id } = params; // Destructure `id` directly from `params`
+
     const router = useRouter();
     const { toast } = useToast();
     const [activeSection, setActiveSection] = useState<string>('overview');
@@ -51,15 +53,16 @@ export default function ProjectPresentation({ params }: PresentPageProps) {
     const { documents, isLoading: documentsLoading } = useDocuments();
     const { teams, isLoading: teamLoading } = useTeams();
 
-    const project = projects.find(p => p.id === params.id) as Project | undefined;
+    const project = projects.find((p) => p.id === id) as Project | undefined; // Use `id` correctly here
 
     const projectDocuments = documents
-        .filter(d => d.projectId === params.id)
+        .filter((d) => d.projectId === id)
         .map(mapAPIDocumentToPresent);
 
     const teamMembers = teams
         .flatMap((team: Team) => team.members)
         .map(mapTeamMemberToPresent);
+
     if (!project) {
         return <div>Project not found</div>;
     }
