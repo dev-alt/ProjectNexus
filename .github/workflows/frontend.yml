@@ -47,7 +47,7 @@ jobs:
         run: |
           # Create docker-compose.yml for frontend only
           cat > docker-compose.yml << 'EOL'
-          name: frontend
+          version: "3.8"
 
           services:
             frontend:
