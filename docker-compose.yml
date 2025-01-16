@@ -10,13 +10,12 @@
 
   backend:
     image: projectnexus-backend:latest
+    container_name: projectnexus_backend
     ports:
       - "8085:8085"
     environment:
-      - MONGODB_URI=mongodb://projectnexus:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/projectnexus?authSource=admin
+      - MONGODB_URI=mongodb://projectnexus:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/projectnexus?authSource=projectnexus
       - JWT_SECRET=${JWT_SECRET}
-      - GIN_MODE=release
-      - ALLOWED_ORIGINS=https://project.chillotters.xyz
     depends_on:
       mongodb:
         condition: service_healthy
@@ -26,6 +25,7 @@
 
   mongodb:
     image: mongo:latest
+    container_name: projectnexus_mongodb
     ports:
       - "27017:27017"
     environment:
@@ -48,8 +48,10 @@
 
 networks:
   projectnexus-network:
+    name: projectnexus_network
     driver: bridge
 
 volumes:
   mongodb_data:
+    name: projectnexus_mongodb_data
     driver: local
