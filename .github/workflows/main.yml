@@ -63,6 +63,32 @@ jobs:
           NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
           EOT
           
+          # Create mongo-init.js file
+          cat << EOT > mongo-init.js
+          db = db.getSiblingDB('admin');
+
+          // Create root user (if not exists)
+          db.createUser({
+              user: "root",
+              pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+              roles: [ { role: "root", db: "admin" } ]
+          });
+
+          db = db.getSiblingDB('projectnexus');
+
+          // Create application database and user
+          db.createUser({
+              user: "projectnexus",
+              pwd: process.env.MONGO_INITDB_ROOT_PASSWORD,
+              roles: [{ role: "readWrite", db: "projectnexus" }]
+          });
+
+          // Create indexes for better performance
+          db.users.createIndex({ "email": 1 }, { unique: true });
+          db.projects.createIndex({ "created_by": 1 });
+          db.documents.createIndex({ "project_id": 1 });
+          EOT
+          
           # Transfer files
           scp frontend.tar backend.tar docker-compose.yml mongo-init.js .env $DEPLOY_USER@$DEPLOY_HOST:~/
           
