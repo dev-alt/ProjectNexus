@@ -1,10 +1,13 @@
-// app/(protected)/present/[id]/page.tsx
 import { PresentationContent } from './PresentationContent';
 
-export default function ProjectPresentation({
-                                                params
-                                            }: {
-    params: { id: string }
+type Params = Promise<{ id: string }>;
+
+export default async function ProjectPresentation({
+                                                      params,
+                                                  }: {
+    params: Params;
 }) {
-    return <PresentationContent id={params.id} />;
+    const resolvedParams = await params;
+
+    return <PresentationContent id={resolvedParams.id} />;
 }
