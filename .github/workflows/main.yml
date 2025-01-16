@@ -89,14 +89,27 @@ jobs:
           db.documents.createIndex({ "project_id": 1 });
           EOT
           
-          # Transfer files
-          scp frontend.tar backend.tar docker-compose.yml mongo-init.js .env $DEPLOY_USER@$DEPLOY_HOST:~/
+          # Transfer files individually
+          echo "Transferring frontend.tar..."
+          scp -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
+          
+          echo "Transferring backend.tar..."
+          scp -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
+          
+          echo "Transferring docker-compose.yml..."
+          scp -o StrictHostKeyChecking=no docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:~/docker-compose.yml
+          
+          echo "Transferring .env..."
+          scp -o StrictHostKeyChecking=no .env $DEPLOY_USER@$DEPLOY_HOST:~/.env
+          
+          echo "Transferring mongo-init.js..."
+          scp -o StrictHostKeyChecking=no mongo-init.js $DEPLOY_USER@$DEPLOY_HOST:~/mongo-init.js
           
           # Deploy
-          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
             # Load images
-            docker load -i frontend.tar
-            docker load -i backend.tar
+            docker load -i ~/frontend.tar
+            docker load -i ~/backend.tar
           
             # Stop existing containers
             docker-compose down --volumes --remove-orphans
@@ -106,5 +119,5 @@ jobs:
           
             # Clean up
             docker image prune -f
-            rm frontend.tar backend.tar
+            rm ~/frontend.tar ~/backend.tar
           EOF
