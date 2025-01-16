@@ -22,6 +22,7 @@
         condition: service_healthy
     networks:
       - projectnexus-network
+    restart: unless-stopped
 
   mongodb:
     image: mongo:latest
@@ -32,7 +33,7 @@
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
       - MONGO_INITDB_DATABASE=projectnexus
     volumes:
-      - mongodb_data:/data/db
+      - mongodb_data:/data/db:rw
       - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     networks:
       - projectnexus-network
@@ -42,6 +43,8 @@
       timeout: 10s
       retries: 5
       start_period: 40s
+    command: ["--auth"]
+    restart: unless-stopped
 
 networks:
   projectnexus-network:

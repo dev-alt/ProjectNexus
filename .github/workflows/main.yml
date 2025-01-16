@@ -57,14 +57,14 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
           # Create .env file
-          cat << EOT > .env
+          cat > .env << 'EOL'
           MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
           JWT_SECRET=${JWT_SECRET}
           NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-          EOT
+          EOL
           
           # Create mongo-init.js file
-          cat << EOT > mongo-init.js
+          cat > mongo-init.js << 'EOL'
           db = db.getSiblingDB('admin');
 
           // Create root user (if not exists)
@@ -87,31 +87,37 @@ jobs:
           db.users.createIndex({ "email": 1 }, { unique: true });
           db.projects.createIndex({ "created_by": 1 });
           db.documents.createIndex({ "project_id": 1 });
-          EOT
+          EOL
           
-          # Transfer files individually
-          echo "Transferring frontend.tar..."
-          scp -o StrictHostKeyChecking=no frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
+          # Check if files were created correctly
+          ls -la .env mongo-init.js
           
-          echo "Transferring backend.tar..."
-          scp -o StrictHostKeyChecking=no backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
+          # Transfer files individually with explicit paths
+          echo "Copying frontend image..."
+          scp frontend.tar $DEPLOY_USER@$DEPLOY_HOST:~/frontend.tar
           
-          echo "Transferring docker-compose.yml..."
-          scp -o StrictHostKeyChecking=no docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:~/docker-compose.yml
+          echo "Copying backend image..."
+          scp backend.tar $DEPLOY_USER@$DEPLOY_HOST:~/backend.tar
           
-          echo "Transferring .env..."
-          scp -o StrictHostKeyChecking=no .env $DEPLOY_USER@$DEPLOY_HOST:~/.env
+          echo "Copying docker-compose.yml..."
+          scp docker-compose.yml $DEPLOY_USER@$DEPLOY_HOST:~/docker-compose.yml
           
-          echo "Transferring mongo-init.js..."
-          scp -o StrictHostKeyChecking=no mongo-init.js $DEPLOY_USER@$DEPLOY_HOST:~/mongo-init.js
+          echo "Copying mongo-init.js..."
+          scp mongo-init.js $DEPLOY_USER@$DEPLOY_HOST:~/mongo-init.js
+          
+          echo "Copying .env..."
+          scp .env $DEPLOY_USER@$DEPLOY_HOST:~/.env
           
           # Deploy
-          ssh -o StrictHostKeyChecking=no $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+          ssh $DEPLOY_USER@$DEPLOY_HOST << 'EOF'
+            # Verify files exist and are correct
+            ls -la ~/mongo-init.js ~/.env
+          
             # Load images
             docker load -i ~/frontend.tar
             docker load -i ~/backend.tar
           
-            # Stop existing containers
+            # Stop existing containers and clean up volumes
             docker-compose down --volumes --remove-orphans
           
             # Start services
