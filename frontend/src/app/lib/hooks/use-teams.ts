@@ -22,7 +22,7 @@ export function useTeams() {
                 lead: team.lead,
                 createdAt: team.createdAt,
                 updatedAt: team.updatedAt,
-                projectCount: team.projectCount
+                projectCount: team.projectCount ?? 0
             }));
             setTeams(formattedTeams);
         } catch (error) {

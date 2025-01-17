@@ -1,11 +1,16 @@
+// types/mockup.ts
+export type MockupType = 'Wireframe' | 'Prototype' | 'High-fidelity';
+export type MockupStatus = 'Draft' | 'In Review' | 'Approved';
+
 export interface Mockup {
-    id: number;
+    id: string;
+    projectId: string;
     name: string;
-    project: string;
-    type: string;
-    lastModified: string;
-    author: string;
-    status: string;
-    thumbnail: string;
+    type: MockupType;
     tool: string;
+    thumbnail?: string;
+    status: MockupStatus;
+    createdBy: string;
+    createdAt: string;
+    updatedAt: string;
 }

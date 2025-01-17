@@ -41,6 +41,8 @@ function mapProjectResponse(project: ProjectResponse): Project {
         team: project.team.length,
         documents: project.documents_count || 0,
         lastUpdated: project.updatedAt,
+        startDate: '',
+        endDate: '',
         progress: project.progress
     };
 }

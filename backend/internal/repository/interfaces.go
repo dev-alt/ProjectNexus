@@ -59,3 +59,12 @@ type TeamMemberRepository interface {
 	CreateTeamMember(ctx context.Context, member *models.TeamMember) error
 	GetTeamMember(ctx context.Context, id string) (*models.TeamMember, error)
 }
+
+type MockupRepository interface {
+	Create(ctx context.Context, mockup *models.Mockup) error
+	GetByID(ctx context.Context, id string) (*models.Mockup, error)
+	GetByProject(ctx context.Context, projectID string) ([]*models.Mockup, error)
+	Update(ctx context.Context, mockup *models.Mockup) error
+	Delete(ctx context.Context, id string) error
+	List(ctx context.Context) ([]*models.Mockup, error)
+}

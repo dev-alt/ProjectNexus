@@ -19,6 +19,7 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 	documentRepo := mongorepo.NewDocumentRepository(db)
 	teamRepo := mongorepo.NewTeamRepository(db)
 	teamMemberRepo := mongorepo.NewTeamMemberRepository(db) // NEW
+	mockupRepo := mongorepo.NewMockupRepository(db)
 
 	// Initialize services
 	config_ := config.Load()
@@ -26,12 +27,14 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 	projectService := services.NewProjectService(projectRepo, userRepo)
 	documentService := services.NewDocumentService(documentRepo, projectRepo)
 	teamService := services.NewTeamService(teamRepo, teamMemberRepo, projectRepo, userRepo)
-	
+	mockupService := services.NewMockupService(mockupRepo, projectRepo)
+
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	projectHandler := handlers.NewProjectHandler(projectService)
 	documentHandler := handlers.NewDocumentHandler(documentService)
 	teamHandler := handlers.NewTeamHandler(teamService)
+	mockupHandler := handlers.NewMockupHandler(mockupService)
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
@@ -109,6 +112,14 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 					documents.GET("/:id/versions", documentHandler.GetDocumentVersions)
 					documents.GET("/project/:id", documentHandler.GetProjectDocuments)
 				}
+			}
+			mockups := protected.Group("/mockups")
+			{
+				mockups.POST("", mockupHandler.CreateMockup)
+				mockups.GET("", mockupHandler.ListMockups)
+				mockups.GET("/:id", mockupHandler.GetMockup)
+				mockups.PUT("/:id", mockupHandler.UpdateMockup)
+				mockups.DELETE("/:id", mockupHandler.DeleteMockup)
 			}
 		}
 	}

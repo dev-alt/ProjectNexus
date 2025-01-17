@@ -1,4 +1,4 @@
-// app/(protected)/present/[id]/page.tsx
+// app/present/[id]/page.tsx
 "use client";
 
 import React, { useState } from 'react';
@@ -7,6 +7,7 @@ import ProjectHeader from '@/components/present/ProjectHeader';
 import NavigationTabs from '@/components/present/NavigationTabs';
 import ProjectOverview from '@/components/present/ProjectOverview';
 import DocumentsGrid from '@/components/present/DocumentsGrid';
+import MockupsGrid from '@/components/present/MockupsGrid';
 import TeamGrid from '@/components/present/TeamGrid';
 import ShareDialog from '@/components/present/ShareDialog';
 import DocumentViewer from '@/components/present/DocumentViewer';
@@ -14,19 +15,21 @@ import { useProjects } from '@/lib/hooks/use-projects';
 import { useDocuments } from '@/lib/hooks/use-documents';
 import { useTeams } from '@/lib/hooks/use-teams';
 import { useToast } from '@/lib/hooks/use-toast';
-import {  Project, APIDocument, PresentDocument, PresentTeamMember, ViewableItem } from '@/types/types';
-import {Team} from "@/types/team";
+import {
+    APIDocument,
+    PresentDocument,
+    PresentTeamMember,
+    ViewableItem,
+    Mockup
+} from '@/types/types';
+// Type guards
+const isDocument = (item: ViewableItem): item is PresentDocument => 'lastModified' in item;
+const isMockup = (item: ViewableItem): item is Mockup => 'tool' in item;
 
-
-// Type guard to check if item is a Document
-const isDocument = (item: ViewableItem): item is PresentDocument => {
-    return 'lastModified' in item;
-};
-
-// Helper functions to map between API types and presentation types
+// Mapping functions
 const mapAPIDocumentToPresent = (doc: APIDocument): PresentDocument => ({
     id: Number(doc.id),
-    type: doc.type,
+    type: doc.type || 'Document',
     title: doc.title,
     lastModified: doc.updatedAt,
     preview: '/api/placeholder/400/200'
@@ -39,83 +42,32 @@ const mapTeamMemberToPresent = (member: { id: string; name: string; role: string
     avatar: `/api/placeholder/32/32`
 });
 
-interface PresentationContentProps {
+interface ProjectPresentationProps {
     id: string;
 }
 
-export function PresentationContent({ id }: PresentationContentProps) {
+export default function ProjectPresentation({ id }: ProjectPresentationProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [activeSection, setActiveSection] = useState<string>('overview');
     const [showShareDialog, setShowShareDialog] = useState<boolean>(false);
-    const [selectedDocument, setSelectedDocument] = useState<PresentDocument | null>(null);
+    const [selectedItem, setSelectedItem] = useState<ViewableItem | null>(null);
 
-    // Fetch project data
+    // Data fetching hooks
     const { projects, isLoading: projectLoading } = useProjects();
     const { documents, isLoading: documentsLoading } = useDocuments();
     const { teams, isLoading: teamLoading } = useTeams();
 
-    const project = projects.find((p) => p.id === id) as Project | undefined; // Use `id` correctly here
-
+    // Find current project and related data
+    const project = projects.find((p) => p.id === id);
     const projectDocuments = documents
         .filter((d) => d.projectId === id)
         .map(mapAPIDocumentToPresent);
-
     const teamMembers = teams
-        .flatMap((team: Team) => team.members)
+        .flatMap((team) => team.members)
         .map(mapTeamMemberToPresent);
 
-    if (!project) {
-        return <div>Project not found</div>;
-    }
-
-
-    // Share handlers
-    const handleShare = () => {
-        setShowShareDialog(true);
-    };
-
-    // Download handler
-    const handleDownload = async () => {
-        if (!selectedDocument) {
-            toast({
-                title: 'Error',
-                description: 'Please select a document to download',
-                variant: 'destructive'
-            });
-            return;
-        }
-
-        try {
-            toast({
-                title: 'Success',
-                description: `Downloading ${selectedDocument.title}...`,
-                variant: 'success'
-            });
-        } catch (error) {
-            toast({
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'Failed to download document',
-                variant: 'destructive'
-            });
-        }
-    };
-
-    // Document handlers
-    const handleDocumentClick = (doc: PresentDocument) => {
-        setSelectedDocument(doc);
-    };
-
-    const handleDocumentShare = () => {
-        setSelectedDocument(null);
-        setShowShareDialog(true);
-    };
-
-    // Team member handlers
-    const handleTeamMemberClick = (member: PresentTeamMember) => {
-        router.push(`/team/${member.id}`);
-    };
-
+    // Loading state
     if (projectLoading || documentsLoading || teamLoading) {
         return (
             <div className="flex items-center justify-center h-96">
@@ -124,14 +76,59 @@ export function PresentationContent({ id }: PresentationContentProps) {
         );
     }
 
+    // Error state
     if (!project) {
         return (
             <div className="text-center py-12">
                 <h2 className="text-2xl font-semibold text-gray-900">Project not found</h2>
-                <p className="mt-2 text-gray-600">The project you&#39;re looking for doesn&#39;t exist or you don&#39;t have access.</p>
+                <p className="mt-2 text-gray-600">
+                    The project you&#39;re looking for doesn&#39;t exist or you don&#39;t have access.
+                </p>
             </div>
         );
     }
+
+    // Event handlers
+    const handleShare = () => setShowShareDialog(true);
+
+    const handleDownload = async () => {
+        if (!selectedItem) {
+            toast({
+                title: 'Error',
+                description: 'Please select an item to download',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        try {
+            toast({
+                title: 'Success',
+                description: `Downloading ${selectedItem.title}...`,
+                variant: 'success'
+            });
+            // Implement actual download logic here
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: error instanceof Error ? error.message : 'Failed to download item',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    const handleDocumentClick = (doc: PresentDocument) => setSelectedItem(doc);
+    const handleMockupClick = (mockup: Mockup) => setSelectedItem(mockup);
+    const handleTeamMemberClick = (member: PresentTeamMember) => router.push(`/team/${member.id}`);
+
+    const handleEdit = (item: ViewableItem) => {
+        setSelectedItem(null);
+        if (isDocument(item)) {
+            router.push(`/documents/${item.id}/edit`);
+        } else if (isMockup(item)) {
+            router.push(`/mockups/${item.id}/edit`);
+        }
+    };
 
     return (
         <div className="space-y-8 pb-8">
@@ -158,7 +155,7 @@ export function PresentationContent({ id }: PresentationContentProps) {
                         documents={projectDocuments}
                         mockups={[]}
                         onDocumentClick={handleDocumentClick}
-                        onMockupClick={() => {}}
+                        onMockupClick={handleMockupClick}
                     />
                 )}
 
@@ -166,6 +163,13 @@ export function PresentationContent({ id }: PresentationContentProps) {
                     <DocumentsGrid
                         documents={projectDocuments}
                         onDocumentClick={handleDocumentClick}
+                    />
+                )}
+
+                {activeSection === 'mockups' && (
+                    <MockupsGrid
+                        mockups={[]}
+                        onMockupClick={handleMockupClick}
                     />
                 )}
 
@@ -177,28 +181,21 @@ export function PresentationContent({ id }: PresentationContentProps) {
                 )}
             </div>
 
-            {/* Dialogs and Modals */}
             <ShareDialog
                 projectName={project.name}
                 isOpen={showShareDialog}
                 onClose={() => setShowShareDialog(false)}
             />
 
-            {selectedDocument && (
+            {selectedItem && (
                 <DocumentViewer
-                    item={selectedDocument}
-                    onClose={() => setSelectedDocument(null)}
-                    onShare={handleDocumentShare}
+                    item={selectedItem}
+                    onClose={() => setSelectedItem(null)}
+                    onShare={handleShare}
                     onDownload={handleDownload}
-                    onEdit={(item) => {
-                        setSelectedDocument(null);
-                        if (isDocument(item)) {
-                            router.push(`/documents/${item.id}/edit`);
-                        }
-                    }}
+                    onEdit={handleEdit}
                 />
             )}
         </div>
     );
 }
-

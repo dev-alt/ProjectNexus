@@ -1,10 +1,11 @@
-﻿import React from 'react';
+﻿// components/mockups/MockupViewer.tsx
+import React from 'react';
 import Image from 'next/image';
 import { X, Edit2, Clock, User, Download, Share2, ExternalLink } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/card';
 import StatusBadge from '@/components/ui/StatusBadge';
-import {Mockup} from "@/types/mockup";
+import { Mockup } from "@/types/mockup";
 
 interface MockupViewerProps {
     mockup: Mockup;
@@ -17,6 +18,8 @@ const MockupViewer: React.FC<MockupViewerProps> = ({
                                                        onClose,
                                                        onEdit,
                                                    }) => {
+    const thumbnailUrl = mockup.thumbnail || '/api/placeholder/800/600';
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-5xl max-h-[90vh] flex flex-col">
@@ -27,7 +30,7 @@ const MockupViewer: React.FC<MockupViewerProps> = ({
                         <div className="flex items-center space-x-4 mt-2">
                             <span className="text-gray-500 text-sm">{mockup.type}</span>
                             <span className="text-gray-300">•</span>
-                            <span className="text-gray-500 text-sm">{mockup.project}</span>
+                            <span className="text-gray-500 text-sm">Project: {mockup.projectId}</span>
                             <span className="text-gray-300">•</span>
                             <StatusBadge status={mockup.status} />
                         </div>
@@ -36,7 +39,7 @@ const MockupViewer: React.FC<MockupViewerProps> = ({
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(mockup.thumbnail, '_blank')}
+                            onClick={() => window.open(thumbnailUrl, '_blank')}
                             leftIcon={<ExternalLink className="h-4 w-4" />}
                         >
                             Open in {mockup.tool}
@@ -79,7 +82,7 @@ const MockupViewer: React.FC<MockupViewerProps> = ({
                         <div className="col-span-2">
                             <div className="relative aspect-[16/9] rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900">
                                 <Image
-                                    src={mockup.thumbnail}
+                                    src={thumbnailUrl}
                                     alt={mockup.name}
                                     fill
                                     className="object-contain"
@@ -96,14 +99,20 @@ const MockupViewer: React.FC<MockupViewerProps> = ({
                                         <div className="flex items-center text-sm">
                                             <User className="h-4 w-4 text-gray-400 mr-2" />
                                             <span className="text-gray-600 dark:text-gray-300">
-                        Created by {mockup.author}
-                      </span>
+                                                Created by {mockup.createdBy}
+                                            </span>
                                         </div>
                                         <div className="flex items-center text-sm">
                                             <Clock className="h-4 w-4 text-gray-400 mr-2" />
                                             <span className="text-gray-600 dark:text-gray-300">
-                        Last modified {new Date(mockup.lastModified).toLocaleDateString()}
-                      </span>
+                                                Created: {new Date(mockup.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center text-sm">
+                                            <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                                            <span className="text-gray-600 dark:text-gray-300">
+                                                Last updated: {new Date(mockup.updatedAt).toLocaleDateString()}
+                                            </span>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -113,22 +122,13 @@ const MockupViewer: React.FC<MockupViewerProps> = ({
                                 <CardContent className="p-4">
                                     <h3 className="font-semibold mb-4">Version History</h3>
                                     <div className="space-y-3">
-                                        {/* Example version history - would come from API */}
                                         <div className="text-sm">
-                                            <div className="font-medium">Version 3 (Current)</div>
-                                            <div className="text-gray-500">Updated layout and colors</div>
-                                            <div className="text-gray-400 text-xs">2 hours ago</div>
+                                            <div className="font-medium">Current Version</div>
+                                            <div className="text-gray-400 text-xs">
+                                                Last updated {new Date(mockup.updatedAt).toLocaleString()}
+                                            </div>
                                         </div>
-                                        <div className="text-sm">
-                                            <div className="font-medium">Version 2</div>
-                                            <div className="text-gray-500">Added new components</div>
-                                            <div className="text-gray-400 text-xs">Yesterday</div>
-                                        </div>
-                                        <div className="text-sm">
-                                            <div className="font-medium">Version 1</div>
-                                            <div className="text-gray-500">Initial design</div>
-                                            <div className="text-gray-400 text-xs">2 days ago</div>
-                                        </div>
+                                        {/* Note: In a real implementation, we would fetch and display actual version history */}
                                     </div>
                                 </CardContent>
                             </Card>

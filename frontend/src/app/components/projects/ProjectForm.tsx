@@ -34,11 +34,17 @@ export const ProjectForm: React.FC<ProjectFormProps> = ({
         status: initialData?.status || 'Planning',
         team: initialData?.team || 1,
         progress: initialData?.progress || 0,
+        startDate: initialData?.startDate || '',
+        endDate: initialData?.endDate || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        onSubmit({
+            ...formData,
+            startDate: formData.startDate || new Date().toISOString(),
+            endDate: formData.endDate || new Date().toISOString(),
+        });
     };
 
     const handleChange = (

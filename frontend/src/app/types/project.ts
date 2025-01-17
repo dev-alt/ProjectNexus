@@ -44,4 +44,7 @@ export interface Project {
     documents: number;
     lastUpdated: string;
     progress: number;
+    startDate: string;
+    endDate: string;
+    thumbnail?: string
 }

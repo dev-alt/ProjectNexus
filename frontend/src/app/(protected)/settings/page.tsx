@@ -2,44 +2,42 @@
 'use client';
 
 import { useState } from 'react';
+import { User, Bell, Palette, Globe, Shield, Monitor } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import Button from '@/components/ui/Button';
 import { ProfileSection } from '@/components/settings/ProfileSection';
 import { SecuritySection } from '@/components/settings/SecuritySection';
 import { NotificationSection } from '@/components/settings/NotificationSection';
 import { AppearanceSection } from '@/components/settings/AppearanceSection';
 
-interface ProfileData {
-    name: string;
-    email: string;
-    avatar: string;
+interface TabProps {
+    icon: typeof User;
+    label: string;
+    isActive: boolean;
+    onClick: () => void;
 }
 
-interface PasswordData {
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-}
-
-interface NotificationSettings {
-    email: boolean;
-    desktop: boolean;
-    updates: boolean;
-    [key: string]: boolean;
-}
-
-interface Settings {
-    profile: ProfileData;
-    notifications: NotificationSettings;
-    theme: string;
-    language: string;
-}
+const SettingsTab = ({ icon: Icon, label, isActive, onClick }: TabProps) => (
+    <button
+        onClick={onClick}
+        className={`flex items-center space-x-2 w-full p-3 rounded-lg transition-colors ${
+            isActive
+                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'
+        }`}
+    >
+        <Icon className="h-5 w-5" />
+        <span className="font-medium">{label}</span>
+    </button>
+);
 
 export default function SettingsPage() {
-    const [settings, setSettings] = useState<Settings>({
+    const [activeTab, setActiveTab] = useState('profile');
+    const [settings, setSettings] = useState({
         profile: {
             name: 'John Doe',
             email: 'john@example.com',
-            avatar: '/api/placeholder/64/64'
+            avatar: '/api/placeholder/96/96'
         },
         notifications: {
             email: true,
@@ -50,77 +48,102 @@ export default function SettingsPage() {
         language: 'en'
     });
 
-    const handleProfileUpdate = (profileData: ProfileData) => {
-        setSettings(prev => ({
-            ...prev,
-            profile: profileData
-        }));
-        // In a real app, make API call here
-    };
+    const tabs = [
+        { id: 'profile', label: 'Profile', icon: User },
+        { id: 'security', label: 'Security', icon: Shield },
+        { id: 'notifications', label: 'Notifications', icon: Bell },
+        { id: 'appearance', label: 'Appearance', icon: Palette },
+        { id: 'integrations', label: 'Integrations', icon: Monitor },
+        { id: 'language', label: 'Language', icon: Globe },
+    ];
 
-    const handlePasswordUpdate = async (passwordData: PasswordData) => {
-        // In a real app, make API call here
-        console.log('Updating password:', passwordData);
-    };
-
-    const handleNotificationUpdate = (notificationSettings: NotificationSettings) => {
-        setSettings(prev => ({
-            ...prev,
-            notifications: notificationSettings
-        }));
-        // In a real app, make API call here
-    };
-
-    const handleThemeChange = (newTheme: string) => {
-        setSettings(prev => ({
-            ...prev,
-            theme: newTheme
-        }));
-        // In a real app, make API call here
-    };
-
-    const handleLanguageChange = (newLanguage: string) => {
-        setSettings(prev => ({
-            ...prev,
-            language: newLanguage
-        }));
-        // In a real app, make API call here
-    };
-
-    const handleSaveAll = () => {
-        // In a real app, this would make an API call to save all settings
-        console.log('Saving all settings:', settings);
-    };
-    
     return (
-        <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Settings</h1>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+                <header className="mb-8">
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Settings</h1>
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        Manage your account settings and preferences
+                    </p>
+                </header>
 
-            <ProfileSection
-                user={settings.profile}
-                onSave={handleProfileUpdate}
-            />
+                <div className="flex flex-col lg:flex-row gap-8">
+                    {/* Sidebar */}
+                    <aside className="w-full lg:w-64 flex-shrink-0">
+                        <nav className="space-y-1">
+                            {tabs.map(tab => (
+                                <SettingsTab
+                                    key={tab.id}
+                                    icon={tab.icon}
+                                    label={tab.label}
+                                    isActive={activeTab === tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                />
+                            ))}
+                        </nav>
+                    </aside>
 
-            <SecuritySection
-                onPasswordUpdate={handlePasswordUpdate}
-            />
+                    {/* Main Content */}
+                    <main className="flex-1 space-y-6">
+                        <Card className="overflow-hidden">
+                            <CardContent className="p-6">
+                                {activeTab === 'profile' && (
+                                    <ProfileSection
+                                        user={settings.profile}
+                                        onSave={(profileData) => {
+                                            setSettings(prev => ({
+                                                ...prev,
+                                                profile: profileData
+                                            }));
+                                        }}
+                                    />
+                                )}
 
-            <NotificationSection
-                notifications={settings.notifications}
-                onUpdate={handleNotificationUpdate}
-            />
+                                {activeTab === 'security' && (
+                                    <SecuritySection
+                                        onPasswordUpdate={(passwordData) => {
+                                            console.log('Password update:', passwordData);
+                                        }}
+                                    />
+                                )}
 
-            <AppearanceSection
-                theme={settings.theme}
-                language={settings.language}
-                onThemeChange={handleThemeChange}
-                onLanguageChange={handleLanguageChange}
-            />
+                                {activeTab === 'notifications' && (
+                                    <NotificationSection
+                                        notifications={settings.notifications}
+                                        onUpdate={(notificationSettings) => {
+                                            setSettings(prev => ({
+                                                ...prev,
+                                                notifications: notificationSettings
+                                            }));
+                                        }}
+                                    />
+                                )}
 
-            <div className="flex justify-end">
-                <Button onClick={handleSaveAll}>
-                    Save Changes
-                </Button>
+                                {activeTab === 'appearance' && (
+                                    <AppearanceSection
+                                        theme={settings.theme}
+                                        language={settings.language}
+                                        onThemeChange={(theme) => {
+                                            setSettings(prev => ({ ...prev, theme }));
+                                        }}
+                                        onLanguageChange={(language) => {
+                                            setSettings(prev => ({ ...prev, language }));
+                                        }}
+                                    />
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <div className="flex justify-end">
+                            <Button
+                                onClick={() => console.log('Saving settings:', settings)}
+                                className="w-full sm:w-auto"
+                            >
+                                Save Changes
+                            </Button>
+                        </div>
+                    </main>
+                </div>
             </div>
         </div>
     );

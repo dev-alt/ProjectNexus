@@ -3,15 +3,15 @@ import { X } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import {Mockup} from "@/types/mockup";
+import { Mockup } from "@/types/mockup";
+import { useProjectOptions } from '@/lib/hooks/use-project-options';
 
 interface MockupFormProps {
-    mockup?: Mockup; // If provided, we're editing; if not, we're creating
+    mockup?: Mockup;
     onClose: () => void;
     onSubmit: (data: Partial<Mockup>) => void;
 }
 
-// Form options
 const mockupTypes = [
     { value: 'Wireframe', label: 'Wireframe' },
     { value: 'Prototype', label: 'Prototype' },
@@ -24,12 +24,6 @@ const tools = [
     { value: 'Adobe XD', label: 'Adobe XD' },
 ];
 
-const projects = [
-    { value: 'E-commerce Platform', label: 'E-commerce Platform' },
-    { value: 'Mobile App Redesign', label: 'Mobile App Redesign' },
-    { value: 'API Integration', label: 'API Integration' },
-];
-
 const statuses = [
     { value: 'Draft', label: 'Draft' },
     { value: 'In Review', label: 'In Review' },
@@ -37,14 +31,16 @@ const statuses = [
 ];
 
 const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) => {
+    const { projectOptions, isLoading: projectsLoading, error: projectsError } = useProjectOptions();
+
     const [formData, setFormData] = useState<Partial<Mockup>>({
         name: '',
-        project: '',
+        projectId: '',
         type: 'Wireframe',
         tool: 'Figma',
         status: 'Draft',
-        thumbnail: '/api/placeholder/300/200', // Default placeholder
-        ...mockup, // Spread existing mockup data if editing
+        thumbnail: '/api/placeholder/300/200',
+        ...mockup,
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -57,8 +53,8 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
             newErrors.name = 'Name is required';
         }
 
-        if (!formData.project?.trim()) {
-            newErrors.project = 'Project is required';
+        if (!formData.projectId?.trim()) {
+            newErrors.projectId = 'Project is required';
         }
 
         if (!formData.type?.trim()) {
@@ -82,18 +78,14 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
 
         setIsSubmitting(true);
         try {
-            // Add timestamps
-            const submitData = {
-                ...formData,
-                lastModified: new Date().toISOString(),
-                author: 'Current User', // In a real app, this would come from auth context
-            };
-
-            await onSubmit(submitData);
+            await onSubmit(formData);
             onClose();
         } catch (error) {
             console.error('Error submitting form:', error);
-            // Handle error (show error message, etc.)
+            setErrors(prev => ({
+                ...prev,
+                submit: error instanceof Error ? error.message : 'Failed to submit form'
+            }));
         } finally {
             setIsSubmitting(false);
         }
@@ -104,16 +96,26 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
     ) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-        // Clear error when field is edited
         if (errors[name]) {
             setErrors((prev) => ({ ...prev, [name]: '' }));
         }
     };
 
+    if (projectsError) {
+        return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+                    <h2 className="text-red-600 mb-4">Error Loading Projects</h2>
+                    <p>{projectsError.message}</p>
+                    <Button onClick={onClose} className="mt-4">Close</Button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl">
-                {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                     <h2 className="text-xl font-semibold">
                         {mockup ? 'Edit Mockup' : 'Create New Mockup'}
@@ -126,7 +128,6 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
                     </button>
                 </div>
 
-                {/* Form */}
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <Input
                         label="Mockup Name"
@@ -141,13 +142,21 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Select
                             label="Project"
-                            name="project"
-                            value={formData.project}
+                            name="projectId"
+                            value={formData.projectId}
                             onChange={handleChange}
-                            options={projects}
-                            error={errors.project}
+                            options={projectOptions}
+                            error={errors.projectId}
+                            disabled={projectsLoading}
                             required
-                        />
+                        >
+                            <option value="">Select a project</option>
+                            {projectOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </Select>
 
                         <Select
                             label="Type"
@@ -157,7 +166,13 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
                             options={mockupTypes}
                             error={errors.type}
                             required
-                        />
+                        >
+                            {mockupTypes.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </Select>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -169,9 +184,15 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
                             options={tools}
                             error={errors.tool}
                             required
-                        />
+                        >
+                            {tools.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </Select>
 
-                        {mockup && ( // Only show status select when editing
+                        {mockup && (
                             <Select
                                 label="Status"
                                 name="status"
@@ -180,11 +201,22 @@ const MockupForm: React.FC<MockupFormProps> = ({ mockup, onClose, onSubmit }) =>
                                 options={statuses}
                                 error={errors.status}
                                 required
-                            />
+                            >
+                                {statuses.map(option => (
+                                    <option key={option.value} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </Select>
                         )}
                     </div>
 
-                    {/* Actions */}
+                    {errors.submit && (
+                        <div className="text-red-600 text-sm mt-2">
+                            {errors.submit}
+                        </div>
+                    )}
+
                     <div className="flex justify-end space-x-3 pt-4">
                         <Button
                             variant="secondary"

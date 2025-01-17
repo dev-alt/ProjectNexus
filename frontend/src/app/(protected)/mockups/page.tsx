@@ -1,155 +1,154 @@
-﻿// app/mockups/page.tsx
-'use client';
+﻿// //app/mockups/page.tsx
+"use client";
 
 import React, { useState } from 'react';
-import { MockupHeader, MockupControls, MockupGrid, MockupList } from '@/components/mockups/Mockups';
-import MockupForm from '@/components/mockups/MockupForm';
-import DeleteConfirmationDialog from '@/components/mockups/DeleteConfirmationDialog';
-import MockupViewer from '@/components/mockups/MockupViewer';
-import {Mockup} from "@/types/mockup";
-
-// Mockup types for filtering
-const mockupTypes = ['All Types', 'Wireframe', 'Prototype', 'High-fidelity'];
-
-// Mock data - in a real app this would come from an API
-const initialMockups = [
-    {
-        id: 1,
-        name: 'User Dashboard Wireframe',
-        project: 'E-commerce Platform',
-        type: 'Wireframe',
-        lastModified: '2024-01-10T10:30:00',
-        author: 'Sarah Chen',
-        status: 'In Review',
-        thumbnail: '/api/placeholder/300/200',
-        tool: 'Figma',
-    },
-    {
-        id: 2,
-        name: 'Mobile App Flow',
-        project: 'Mobile App Redesign',
-        type: 'Prototype',
-        lastModified: '2024-01-09T15:45:00',
-        author: 'Alex Morrison',
-        status: 'Approved',
-        thumbnail: '/api/placeholder/300/200',
-        tool: 'Sketch',
-    },
-    {
-        id: 3,
-        name: 'Settings Page Design',
-        project: 'API Integration',
-        type: 'High-fidelity',
-        lastModified: '2024-01-08T09:15:00',
-        author: 'Michael Scott',
-        status: 'Draft',
-        thumbnail: '/api/placeholder/300/200',
-        tool: 'Adobe XD',
-    },
-];
+import {
+    MockupHeader,
+    MockupControls,
+    MockupGrid,
+    MockupList,
+    MockupForm,
+    MockupViewer,
+    DeleteConfirmationDialog,
+    MOCKUP_FILTER_TYPES,
+} from '@/components/mockups';
+import type { MockupFilterType } from '@/components/mockups';
+import type { Mockup } from "@/types/mockup";
+import { useMockups } from '@/lib/hooks/use-mockups';
 
 export default function MockupsPage() {
     // State management
-    const [mockups, setMockups] = useState(initialMockups);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedType, setSelectedType] = useState('All Types');
+    const [selectedType, setSelectedType] = useState<MockupFilterType>('All Types');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
-    // Modal states
     const [isCreating, setIsCreating] = useState(false);
     const [editingMockup, setEditingMockup] = useState<Mockup | null>(null);
     const [deletingMockup, setDeletingMockup] = useState<Mockup | null>(null);
     const [viewingMockup, setViewingMockup] = useState<Mockup | null>(null);
-    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Custom hook for mockup data and operations
+    const {
+        mockups = [], // Provide empty array as default value
+        isLoading,
+        createMockup,
+        updateMockup,
+        deleteMockup,
+    } = useMockups();
 
     // Filter mockups based on search query and selected type
-    const filteredMockups = mockups.filter((mockup) => {
+    const filteredMockups = (mockups ?? []).filter((mockup) => {
+        if (!mockup) return false;
+
         const matchesSearch =
-            mockup.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            mockup.project.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            mockup.author.toLowerCase().includes(searchQuery.toLowerCase());
+            mockup.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            mockup.projectId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            mockup.createdBy?.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesType = selectedType === 'All Types' || mockup.type === selectedType;
 
         return matchesSearch && matchesType;
     });
 
-    // Create mockup handler
+    // Event handlers
     const handleCreateMockup = async (data: Partial<Mockup>) => {
-        const newMockup = {
-            ...data,
-            id: Math.max(...mockups.map(m => m.id)) + 1,
-        } as Mockup;
+        if (!data.projectId || !data.name || !data.type || !data.tool || !data.status) {
+            console.error('Missing required fields');
+            return;
+        }
 
-        setMockups([...mockups, newMockup]);
-        setIsCreating(false);
-    };
-
-    // Update mockup handler
-    const handleUpdateMockup = async (data: Partial<Mockup>) => {
-        if (!editingMockup) return;
-
-        setMockups(mockups.map(mockup =>
-            mockup.id === editingMockup.id
-                ? { ...mockup, ...data }
-                : mockup
-        ));
-        setEditingMockup(null);
-    };
-
-    // Delete mockup handler
-    const handleDeleteMockup = async () => {
-        if (!deletingMockup) return;
-
-        setIsDeleting(true);
         try {
-            // In a real app, you would call an API here
-            setMockups(mockups.filter(m => m.id !== deletingMockup.id));
-            setDeletingMockup(null);
-        } finally {
-            setIsDeleting(false);
+            await createMockup({
+                projectId: data.projectId,
+                name: data.name,
+                type: data.type,
+                tool: data.tool,
+                status: data.status,
+                thumbnail: data.thumbnail
+            });
+            setIsCreating(false);
+        } catch (error) {
+            console.error('Failed to create mockup:', error);
         }
     };
 
-    // Open mockup handler
-    const handleOpenMockup = (mockup: Mockup) => {
-        setViewingMockup(mockup);
+    const handleUpdateMockup = async (data: Partial<Mockup>) => {
+        if (!editingMockup?.id) {
+            console.error('No mockup selected for editing');
+            return;
+        }
+
+        try {
+            await updateMockup(editingMockup.id, {
+                name: data.name,
+                type: data.type,
+                tool: data.tool,
+                status: data.status,
+                thumbnail: data.thumbnail
+            });
+            setEditingMockup(null);
+        } catch (error) {
+            console.error('Failed to update mockup:', error);
+        }
     };
+
+    const handleDeleteMockup = async () => {
+        if (!deletingMockup?.id) {
+            console.error('No mockup selected for deletion');
+            return;
+        }
+
+        try {
+            await deleteMockup(deletingMockup.id);
+            setDeletingMockup(null);
+        } catch (error) {
+            console.error('Failed to delete mockup:', error);
+        }
+    };
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
-            {/* Header */}
             <MockupHeader onCreateNew={() => setIsCreating(true)} />
 
-            {/* Controls */}
             <MockupControls
                 searchQuery={searchQuery}
                 selectedType={selectedType}
                 viewMode={viewMode}
                 onSearchChange={(e) => setSearchQuery(e.target.value)}
-                onTypeChange={(e) => setSelectedType(e.target.value)}
+                onTypeChange={(e) => setSelectedType(e.target.value as MockupFilterType)}
                 onViewModeChange={setViewMode}
-                mockupTypes={mockupTypes}
+                mockupTypes={MOCKUP_FILTER_TYPES}
             />
 
-            {/* Mockups Display */}
-            {viewMode === 'grid' ? (
+            {filteredMockups.length === 0 ? (
+                <div className="text-center py-12">
+                    <p className="text-gray-500">No mockups found.</p>
+                </div>
+            ) : viewMode === 'grid' ? (
                 <MockupGrid
                     mockups={filteredMockups}
                     onEdit={setEditingMockup}
                     onDelete={setDeletingMockup}
-                    onOpen={handleOpenMockup}
+                    onOpen={setViewingMockup}
                 />
             ) : (
                 <MockupList
                     mockups={filteredMockups}
                     onEdit={setEditingMockup}
                     onDelete={setDeletingMockup}
-                    onOpen={handleOpenMockup}
+                    onOpen={setViewingMockup}
                 />
             )}
 
-            {/* Create Modal */}
+            {/* Modals */}
             {isCreating && (
                 <MockupForm
                     onClose={() => setIsCreating(false)}
@@ -157,7 +156,6 @@ export default function MockupsPage() {
                 />
             )}
 
-            {/* Edit Modal */}
             {editingMockup && (
                 <MockupForm
                     mockup={editingMockup}
@@ -166,17 +164,15 @@ export default function MockupsPage() {
                 />
             )}
 
-            {/* Delete Confirmation */}
             {deletingMockup && (
                 <DeleteConfirmationDialog
                     mockup={deletingMockup}
                     onConfirm={handleDeleteMockup}
                     onCancel={() => setDeletingMockup(null)}
-                    isDeleting={isDeleting}
+                    isDeleting={isLoading}
                 />
             )}
 
-            {/* Mockup Viewer */}
             {viewingMockup && (
                 <MockupViewer
                     mockup={viewingMockup}

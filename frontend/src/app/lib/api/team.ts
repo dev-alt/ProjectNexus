@@ -1,10 +1,32 @@
 // lib/api/team.ts
-import { Team, TeamMember } from '@/types/team';
+import { TeamMember } from '@/types/team';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8085/api/v1';
 
+interface Team {
+    id: string;
+    name: string;
+    description: string;
+    members: TeamMember[];
+    lead: string;
+    createdAt: string;
+    updatedAt: string;
+    projectCount?: number;
+}
+
+interface CreateTeamInput {
+    name: string;
+    description: string;
+}
+
+interface UpdateTeamInput {
+    name?: string;
+    description?: string;
+    lead?: string;
+}
+
 export const teamApi = {
-    // Team management endpoints
+    // Get all teams
     getAllTeams: async (): Promise<Team[]> => {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/teams`, {
@@ -22,7 +44,8 @@ export const teamApi = {
         return response.json();
     },
 
-    getTeamById: async (teamId: string): Promise<Team> => {
+    // Get team by ID
+    getTeam: async (teamId: string): Promise<Team> => {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/teams/${teamId}`, {
             headers: {
@@ -39,7 +62,8 @@ export const teamApi = {
         return response.json();
     },
 
-    createTeam: async (data: { name: string; description: string }): Promise<Team> => {
+    // Create new team
+    createTeam: async (data: CreateTeamInput): Promise<Team> => {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/teams`, {
             method: 'POST',
@@ -58,7 +82,8 @@ export const teamApi = {
         return response.json();
     },
 
-    updateTeam: async (teamId: string, data: Partial<Team>): Promise<Team> => {
+    // Update team
+    updateTeam: async (teamId: string, data: UpdateTeamInput): Promise<Team> => {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/teams/${teamId}`, {
             method: 'PUT',
@@ -77,6 +102,7 @@ export const teamApi = {
         return response.json();
     },
 
+    // Delete team
     deleteTeam: async (teamId: string): Promise<void> => {
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/teams/${teamId}`, {
@@ -93,10 +119,10 @@ export const teamApi = {
         }
     },
 
-    // Team members endpoints
-    getTeamMembers: async (teamId: string): Promise<TeamMember[]> => {
+    // Get team members
+    getProjectTeam: async (projectId: string): Promise<TeamMember[]> => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/teams/${teamId}/members`, {
+        const response = await fetch(`${API_URL}/projects/${projectId}/team`, {
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
@@ -111,15 +137,16 @@ export const teamApi = {
         return response.json();
     },
 
-    addTeamMember: async (teamId: string, data: { userId: string; role: string }): Promise<TeamMember> => {
+    // Add team member
+    addTeamMember: async (projectId: string, userId: string, role: string): Promise<TeamMember> => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/teams/${teamId}/members`, {
+        const response = await fetch(`${API_URL}/projects/${projectId}/team`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify({ userId, role }),
         });
 
         if (!response.ok) {
@@ -130,9 +157,10 @@ export const teamApi = {
         return response.json();
     },
 
-    updateTeamMember: async (teamId: string, memberId: string, data: { role?: string; status?: string }): Promise<TeamMember> => {
+    // Update team member
+    updateTeamMember: async (projectId: string, memberId: string, data: { role?: string; status?: string }): Promise<TeamMember> => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/teams/${teamId}/members/${memberId}`, {
+        const response = await fetch(`${API_URL}/projects/${projectId}/team/${memberId}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -149,9 +177,10 @@ export const teamApi = {
         return response.json();
     },
 
-    removeTeamMember: async (teamId: string, memberId: string): Promise<void> => {
+    // Remove team member
+    removeTeamMember: async (projectId: string, memberId: string): Promise<void> => {
         const token = localStorage.getItem('token');
-        const response = await fetch(`${API_URL}/teams/${teamId}/members/${memberId}`, {
+        const response = await fetch(`${API_URL}/projects/${projectId}/team/${memberId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`,
