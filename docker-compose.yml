@@ -16,8 +16,11 @@
     environment:
       - MONGODB_URI=mongodb://projectnexus:${MONGO_INITDB_ROOT_PASSWORD}@mongodb:27017/projectnexus?authSource=projectnexus
       - JWT_SECRET=${JWT_SECRET}
+      - REDIS_URL=redis:6479
     depends_on:
       mongodb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - projectnexus-network
@@ -46,6 +49,16 @@
     command: ["--auth"]
     restart: unless-stopped
 
+  redis: 
+    image: redis:alpine
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - projectnexus-network
+
 networks:
   projectnexus-network:
     name: projectnexus_network
@@ -54,4 +67,6 @@ networks:
 volumes:
   mongodb_data:
     name: projectnexus_mongodb_data
+    driver: local
+  redis_data:
     driver: local

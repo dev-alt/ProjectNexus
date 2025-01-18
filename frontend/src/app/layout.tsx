@@ -3,9 +3,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from '@/lib/context/auth';
-// import MainLayout from '@/components/ui/MainLayout';
 import React from "react";
-import {Toaster} from "@/components/ui/Toaster";
+import { Toaster } from "@/components/ui/Toaster";
+import Script from 'next/script';
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -104,13 +104,16 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en">
-        <body
-            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
+        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AuthProvider>
             {children}
         </AuthProvider>
         <Toaster />
+        <Script
+            src="https://static.cloudflareinsights.com/beacon.min.js"
+            strategy="afterInteractive"
+            crossOrigin="anonymous"
+        />
         </body>
         </html>
     );
