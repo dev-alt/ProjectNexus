@@ -1,4 +1,4 @@
-﻿// Package services internal/services/document.go
+// Package services internal/services/document.go
 package services
 
 import (
@@ -50,7 +50,7 @@ func (s *documentService) hasProjectAccess(ctx context.Context, projectID string
 	// Validate ObjectID format
 	if _, err := primitive.ObjectIDFromHex(projectID); err != nil {
 		log.Printf("Invalid project ID format: %v", err)
-		return false, repository.ErrProjectNotFound
+		return false, errors.ErrProjectNotFound
 	}
 
 	project, err := s.projectRepo.GetByID(ctx, projectID)
@@ -91,7 +91,7 @@ func (s *documentService) CreateDocument(ctx context.Context, input models.Creat
 	// Check project access
 	hasAccess, err := s.hasProjectAccess(ctx, input.ProjectID, userID)
 	if err != nil {
-		if err == repository.ErrProjectNotFound {
+		if err == errors.ErrProjectNotFound {
 			return nil, errors.ErrProjectNotFound
 		}
 		return nil, fmt.Errorf("failed to check project access: %w", err)
@@ -126,14 +126,14 @@ func (s *documentService) GetDocument(ctx context.Context, id string, userID str
 	// Validate ObjectID format
 	if _, err := primitive.ObjectIDFromHex(id); err != nil {
 		log.Printf("Invalid document ID format: %v", err)
-		return nil, repository.ErrDocumentNotFound
+		return nil, errors.ErrDocumentNotFound
 	}
 
 	doc, err := s.documentRepo.GetByID(ctx, id)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			log.Printf("Document not found: %s", id)
-			return nil, repository.ErrDocumentNotFound
+			return nil, errors.ErrDocumentNotFound
 		}
 		log.Printf("Error fetching document: %v", err)
 		return nil, err
@@ -144,7 +144,7 @@ func (s *documentService) GetDocument(ctx context.Context, id string, userID str
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			log.Printf("Project not found for document: %s", doc.ProjectID)
-			return nil, repository.ErrProjectNotFound
+			return nil, errors.ErrProjectNotFound
 		}
 		log.Printf("Error fetching project: %v", err)
 		return nil, err
@@ -163,7 +163,7 @@ func (s *documentService) GetDocument(ctx context.Context, id string, userID str
 
 	if !hasAccess {
 		log.Printf("User %s not authorized to access document %s", userID, id)
-		return nil, repository.ErrUnauthorized
+		return nil, errors.ErrUnauthorized
 	}
 
 	return doc, nil
@@ -255,7 +255,7 @@ func (s *documentService) GetProjectDocuments(ctx context.Context, projectID str
 	// Validate project ID
 	if _, err := primitive.ObjectIDFromHex(projectID); err != nil {
 		log.Printf("Invalid project ID format: %v", err)
-		return nil, repository.ErrProjectNotFound
+		return nil, errors.ErrProjectNotFound
 	}
 
 	// Check project access
@@ -263,7 +263,7 @@ func (s *documentService) GetProjectDocuments(ctx context.Context, projectID str
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			log.Printf("Project not found: %s", projectID)
-			return nil, repository.ErrProjectNotFound
+			return nil, errors.ErrProjectNotFound
 		}
 		log.Printf("Error fetching project: %v", err)
 		return nil, err
@@ -282,7 +282,7 @@ func (s *documentService) GetProjectDocuments(ctx context.Context, projectID str
 
 	if !hasAccess {
 		log.Printf("User %s not authorized to access project %s", userID, projectID)
-		return nil, repository.ErrUnauthorized
+		return nil, errors.ErrUnauthorized
 	}
 
 	// Get project documents

@@ -1,4 +1,4 @@
-﻿// internal/repository/mongo/mockup.go
+// Package mongo internal/repository/mongo/mockup.go
 package mongo
 
 import (

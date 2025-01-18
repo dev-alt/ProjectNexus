@@ -1,4 +1,4 @@
-﻿// Package mongo internal/repository/mongo/team_repository.go
+// Package mongo internal/repository/mongo/team_repository.go
 package mongo
 
 import (
@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	errs "projectnexus/internal/errors"
 	"projectnexus/internal/models"
-	"projectnexus/internal/repository"
 	"time"
 )
 
@@ -55,7 +55,7 @@ func (r *TeamRepository) Create(ctx context.Context, team *models.Team) error {
 	result, err := r.collection.InsertOne(ctx, team)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return repository.ErrAlreadyInTeam
+			return errs.ErrAlreadyInTeam
 		}
 		return fmt.Errorf("failed to create team: %w", err)
 	}
@@ -70,14 +70,14 @@ func (r *TeamRepository) Create(ctx context.Context, team *models.Team) error {
 func (r *TeamRepository) GetByID(ctx context.Context, id string) (*models.TeamMember, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, repository.ErrNotFound
+		return nil, errs.ErrNotFound
 	}
 
 	var member models.TeamMember
 	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&member)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, repository.ErrNotFound
+			return nil, errs.ErrNotFound
 		}
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (r *TeamRepository) GetByProjectAndUser(ctx context.Context, projectID, use
 
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, repository.ErrNotFound
+			return nil, errs.ErrNotFound
 		}
 		return nil, err
 	}
@@ -130,7 +130,7 @@ func (r *TeamRepository) Update(ctx context.Context, member *models.TeamMember) 
 
 	oid, err := primitive.ObjectIDFromHex(member.ID)
 	if err != nil {
-		return repository.ErrNotFound
+		return errs.ErrNotFound
 	}
 
 	result, err := r.collection.UpdateOne(
@@ -150,7 +150,7 @@ func (r *TeamRepository) Update(ctx context.Context, member *models.TeamMember) 
 	}
 
 	if result.MatchedCount == 0 {
-		return repository.ErrNotFound
+		return errs.ErrNotFound
 	}
 
 	return nil
@@ -159,7 +159,7 @@ func (r *TeamRepository) Update(ctx context.Context, member *models.TeamMember) 
 func (r *TeamRepository) Delete(ctx context.Context, id string) error {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return repository.ErrNotFound
+		return errs.ErrNotFound
 	}
 
 	result, err := r.collection.DeleteOne(ctx, bson.M{"_id": oid})
@@ -168,7 +168,7 @@ func (r *TeamRepository) Delete(ctx context.Context, id string) error {
 	}
 
 	if result.DeletedCount == 0 {
-		return repository.ErrNotFound
+		return errs.ErrNotFound
 	}
 
 	return nil
@@ -200,7 +200,7 @@ func (r *TeamRepository) CreateTeamMember(ctx context.Context, member *models.Te
 	_, err := r.collection.InsertOne(ctx, member)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return repository.ErrAlreadyInTeam
+			return errs.ErrAlreadyInTeam
 		}
 		return fmt.Errorf("failed to create team member: %w", err)
 	}
@@ -210,14 +210,14 @@ func (r *TeamRepository) CreateTeamMember(ctx context.Context, member *models.Te
 func (r *TeamRepository) GetTeamMember(ctx context.Context, id string) (*models.TeamMember, error) {
 	oid, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return nil, repository.ErrNotFound
+		return nil, errs.ErrNotFound
 	}
 
 	var member models.TeamMember
 	err = r.collection.FindOne(ctx, bson.M{"_id": oid}).Decode(&member)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, repository.ErrNotFound
+			return nil, errs.ErrNotFound
 		}
 		return nil, fmt.Errorf("failed to fetch team member: %w", err)
 	}

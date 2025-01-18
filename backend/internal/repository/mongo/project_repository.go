@@ -9,8 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"log"
+	errs "projectnexus/internal/errors"
 	"projectnexus/internal/models"
-	"projectnexus/internal/repository"
 	"time"
 )
 
@@ -113,7 +113,7 @@ func (r *ProjectRepository) Update(ctx context.Context, project *models.Project)
 	}
 
 	if result.MatchedCount == 0 {
-		return repository.ErrProjectNotFound
+		return errs.ErrProjectNotFound
 	}
 
 	return nil
@@ -156,7 +156,7 @@ func (r *ProjectRepository) CheckUserAccess(ctx context.Context, projectID strin
 	oid, err := primitive.ObjectIDFromHex(projectID)
 	if err != nil {
 		log.Printf("Invalid project ID format: %v", err)
-		return false, repository.ErrProjectNotFound
+		return false, errs.ErrProjectNotFound
 	}
 
 	var project models.Project
@@ -164,7 +164,7 @@ func (r *ProjectRepository) CheckUserAccess(ctx context.Context, projectID strin
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			log.Printf("Project not found: %s", projectID)
-			return false, repository.ErrProjectNotFound
+			return false, errs.ErrProjectNotFound
 		}
 		log.Printf("Error fetching project: %v", err)
 		return false, err

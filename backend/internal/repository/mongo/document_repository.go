@@ -1,4 +1,4 @@
-﻿// Package mongo internal/repository/mongo/document_repository.go
+// Package mongo internal/repository/mongo/document_repository.go
 package mongo
 
 import (
@@ -10,8 +10,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	errs "projectnexus/internal/errors"
 	"projectnexus/internal/models"
-	"projectnexus/internal/repository"
 	"time"
 )
 
@@ -82,7 +82,7 @@ func (r *DocumentRepository) GetByID(ctx context.Context, id string) (*models.Do
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			log.Printf("Document not found: %s", id)
-			return nil, repository.ErrDocumentNotFound
+			return nil, errs.ErrDocumentNotFound
 		}
 		log.Printf("Error fetching document: %v", err)
 		return nil, err
@@ -157,7 +157,7 @@ func (r *DocumentRepository) Update(ctx context.Context, doc *models.Document) e
 
 	if result.MatchedCount == 0 {
 		log.Printf("No document found with ID: %s", doc.ID)
-		return repository.ErrDocumentNotFound
+		return errs.ErrDocumentNotFound
 	}
 
 	// Create new version

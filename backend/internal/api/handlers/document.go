@@ -1,16 +1,15 @@
-﻿// Package handlers internal/api/handlers/document.go
+// Package handlers internal/api/handlers/document.go
 package handlers
 
 import (
 	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	errs "projectnexus/internal/errors"
 	"projectnexus/internal/models"
-	"projectnexus/internal/repository"
 	"projectnexus/internal/services"
-
-	"github.com/gin-gonic/gin"
 )
 
 type DocumentHandler struct {
@@ -42,9 +41,9 @@ func (h *DocumentHandler) CreateDocument(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error creating document: %v", err)
 		switch {
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to create documents in this project"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Failed to create document: %v", err)})
@@ -72,11 +71,11 @@ func (h *DocumentHandler) GetDocument(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error getting document: %v", err)
 		switch {
-		case errors.Is(err, repository.ErrDocumentNotFound):
+		case errors.Is(err, errs.ErrDocumentNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Associated project not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to access this document"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -112,9 +111,9 @@ func (h *DocumentHandler) UpdateDocument(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error updating document: %v", err)
 		switch {
-		case errors.Is(err, repository.ErrDocumentNotFound):
+		case errors.Is(err, errs.ErrDocumentNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to update this document"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -136,9 +135,9 @@ func (h *DocumentHandler) DeleteDocument(c *gin.Context) {
 	err := h.documentService.DeleteDocument(c.Request.Context(), documentID, userID)
 	if err != nil {
 		switch {
-		case errors.Is(err, repository.ErrDocumentNotFound):
+		case errors.Is(err, errs.ErrDocumentNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to delete this document"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete document"})
@@ -174,9 +173,9 @@ func (h *DocumentHandler) GetProjectDocuments(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error getting project documents: %v", err)
 		switch {
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to access project documents"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -202,9 +201,9 @@ func (h *DocumentHandler) GetDocumentVersions(c *gin.Context) {
 	versions, err := h.documentService.GetDocumentVersions(c.Request.Context(), documentID, userID)
 	if err != nil {
 		switch {
-		case errors.Is(err, repository.ErrDocumentNotFound):
+		case errors.Is(err, errs.ErrDocumentNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Document not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to access document versions"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get document versions"})

@@ -1,15 +1,13 @@
-// Package handlers internal/api/handlers/project.go
 package handlers
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+	errs "projectnexus/internal/errors"
 	"projectnexus/internal/models"
-	"projectnexus/internal/repository"
 	"projectnexus/internal/services"
-
-	"github.com/gin-gonic/gin"
 )
 
 type ProjectHandler struct {
@@ -48,9 +46,9 @@ func (h *ProjectHandler) GetProject(c *gin.Context) {
 	project, err := h.projectService.GetProject(c.Request.Context(), projectID, userID)
 	if err != nil {
 		switch { // Use switch without a tag
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to access this project"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get project"})
@@ -74,9 +72,9 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 	project, err := h.projectService.UpdateProject(c.Request.Context(), projectID, input, userID)
 	if err != nil {
 		switch { // Use switch without a tag
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to update this project"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update project"})
@@ -94,9 +92,9 @@ func (h *ProjectHandler) DeleteProject(c *gin.Context) {
 	err := h.projectService.DeleteProject(c.Request.Context(), projectID, userID)
 	if err != nil {
 		switch {
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to delete this project"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete project"})
@@ -141,13 +139,13 @@ func (h *ProjectHandler) AddTeamMember(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error adding team member: %v", err)
 		switch {
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUserNotFound):
+		case errors.Is(err, errs.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to modify team"})
-		case errors.Is(err, repository.ErrAlreadyInTeam):
+		case errors.Is(err, errs.ErrAlreadyInTeam):
 			c.JSON(http.StatusConflict, gin.H{"error": "User is already a team member"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -172,15 +170,15 @@ func (h *ProjectHandler) RemoveTeamMember(c *gin.Context) {
 	if err != nil {
 		log.Printf("Error removing team member: %v", err)
 		switch {
-		case errors.Is(err, repository.ErrProjectNotFound):
+		case errors.Is(err, errs.ErrProjectNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "Project not found"})
-		case errors.Is(err, repository.ErrUserNotFound):
+		case errors.Is(err, errs.ErrUserNotFound):
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		case errors.Is(err, repository.ErrUnauthorized):
+		case errors.Is(err, errs.ErrUnauthorized):
 			c.JSON(http.StatusForbidden, gin.H{"error": "Not authorized to modify team"})
-		case errors.Is(err, repository.ErrNotInTeam):
+		case errors.Is(err, errs.ErrNotInTeam):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "User is not a team member"})
-		case errors.Is(err, repository.ErrCannotRemoveOwner):
+		case errors.Is(err, errs.ErrCannotRemoveOwner):
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Cannot remove project owner from team"})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{

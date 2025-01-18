@@ -1,16 +1,15 @@
-﻿package mongo
+package mongo
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"projectnexus/internal/models"
-	"projectnexus/internal/repository"
-	"time"
-
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	errs "projectnexus/internal/errors"
+	"projectnexus/internal/models"
+	"time"
 )
 
 type TeamMemberRepository struct {
@@ -151,7 +150,7 @@ func (r *TeamMemberRepository) CreateTeamMember(ctx context.Context, member *mod
 	_, err := r.collection.InsertOne(ctx, member)
 	if err != nil {
 		if mongo.IsDuplicateKeyError(err) {
-			return repository.ErrAlreadyInTeam
+			return errs.ErrAlreadyInTeam
 		}
 		return fmt.Errorf("failed to create team member: %w", err)
 	}

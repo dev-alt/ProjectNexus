@@ -1,4 +1,4 @@
-﻿// Package services internal/services/team.go
+// Package services internal/services/team.go
 package services
 
 import (
@@ -79,7 +79,7 @@ func (s *teamService) GetTeamByID(ctx context.Context, id string) (interface{}, 
 	// Fetch the team by ID from the repository
 	team, err := s.teamRepo.GetByID(ctx, id)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrNotFound // Return an appropriate error
 		}
 		return nil, fmt.Errorf("failed to fetch team by ID: %w", err)
@@ -92,7 +92,7 @@ func (s *teamService) UpdateTeam(ctx context.Context, id string, input models.Up
 	// Fetch the existing team
 	team, err := s.teamRepo.GetByID(ctx, id)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrNotFound // Team not found
 		}
 		return nil, fmt.Errorf("failed to fetch team: %w", err) // Other errors
@@ -122,7 +122,7 @@ func (s *teamService) DeleteTeam(ctx context.Context, id string) interface{} {
 	// Check if the team exists (optional step)
 	_, err := s.teamRepo.GetByID(ctx, id)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return errors.ErrNotFound // Team not found
 		}
 		return fmt.Errorf("failed to fetch team: %w", err) // Other errors
@@ -140,7 +140,7 @@ func (s *teamService) GetTeamMembers(ctx context.Context, id string) (interface{
 	// Check if the team exists
 	_, err := s.teamRepo.GetByID(ctx, id)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrNotFound // Return team not found error
 		}
 		return nil, fmt.Errorf("failed to fetch team: %w", err) // Handle other errors
@@ -159,7 +159,7 @@ func (s *teamService) AddTeamMember(ctx context.Context, projectID string, input
 	// Check if project exists and adder has permission
 	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrProjectNotFound
 		}
 		return nil, err
@@ -173,7 +173,7 @@ func (s *teamService) AddTeamMember(ctx context.Context, projectID string, input
 	// Check if user exists
 	user, err := s.userRepo.GetByID(ctx, input.UserID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrUserNotFound
 		}
 		return nil, err
@@ -188,7 +188,7 @@ func (s *teamService) AddTeamMember(ctx context.Context, projectID string, input
 	}
 
 	if err := s.teamMemberRepo.Create(ctx, member); err != nil {
-		if stderrors.Is(err, repository.ErrAlreadyInTeam) {
+		if stderrors.Is(err, errors.ErrAlreadyInTeam) {
 			return nil, errors.ErrAlreadyInTeam
 		}
 		return nil, fmt.Errorf("failed to create team member: %w", err)
@@ -201,7 +201,7 @@ func (s *teamService) UpdateTeamMember(ctx context.Context, projectID, memberID 
 	// Get project to check permissions
 	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrProjectNotFound
 		}
 		return nil, err
@@ -215,7 +215,7 @@ func (s *teamService) UpdateTeamMember(ctx context.Context, projectID, memberID 
 	// Get team member and verify they belong to this project
 	member, err := s.teamRepo.GetByID(ctx, memberID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrNotFound
 		}
 		return nil, err
@@ -250,7 +250,7 @@ func (s *teamService) RemoveTeamMember(ctx context.Context, projectID, memberID 
 	// Check project exists and verify permissions
 	project, err := s.projectRepo.GetByID(ctx, projectID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return errors.ErrProjectNotFound
 		}
 		return err
@@ -264,7 +264,7 @@ func (s *teamService) RemoveTeamMember(ctx context.Context, projectID, memberID 
 	// Get team member and verify they belong to this project
 	member, err := s.teamRepo.GetByID(ctx, memberID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return errors.ErrNotFound
 		}
 		return err
@@ -287,7 +287,7 @@ func (s *teamService) GetTeamMember(ctx context.Context, projectID, memberID str
 	// Get team member
 	member, err := s.teamRepo.GetByID(ctx, memberID)
 	if err != nil {
-		if stderrors.Is(err, repository.ErrNotFound) {
+		if stderrors.Is(err, errors.ErrNotFound) {
 			return nil, errors.ErrNotFound
 		}
 		return nil, err
