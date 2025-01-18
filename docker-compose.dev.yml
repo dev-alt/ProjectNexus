@@ -29,10 +29,13 @@
       - MONGODB_URI=mongodb://root:mongodbpass@mongodb:27017/projectnexus?authSource=admin
       - JWT_SECRET=your-secret-key-here
       - GIN_MODE=debug
+      - REDIS_URL=redis:6479
     volumes:
       - ./backend:/app
     depends_on:
       mongodb:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - projectnexus-network-dev
@@ -58,7 +61,21 @@
       retries: 5
       start_period: 40s
 
-
+  redis:
+    image: redis:alpine
+    ports:
+      - "6479:6479"
+    networks:
+      - projectnexus-network-dev
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+    volumes:
+      - redis_data:/data
+        
+  
   mongo-express:
     image: mongo-express
     ports:
@@ -82,3 +99,4 @@ volumes:
   mongodb_data_dev:
   frontend_node_modules:
   frontend_next_cache:
+  redis_data:

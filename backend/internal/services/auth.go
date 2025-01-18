@@ -1,9 +1,11 @@
-﻿// Package services internal/services/auth.go
+// Package services internal/services/auth.go
 package services
 
 import (
 	"context"
 	stderrors "errors"
+	"fmt"
+	"log"
 	"projectnexus/internal/errors"
 	"projectnexus/internal/models"
 	"projectnexus/internal/repository"
@@ -16,17 +18,21 @@ type AuthService interface {
 	Register(ctx context.Context, input models.RegisterInput) (*models.AuthResponse, error)
 	Login(ctx context.Context, input models.LoginInput) (*models.AuthResponse, error)
 	ValidateToken(token string) (*models.User, error)
+	RefreshToken(ctx context.Context, token string) (*models.AuthResponse, error)
+	Logout(ctx context.Context, token string) error
 }
 
 type authService struct {
-	userRepo  repository.UserRepository
-	jwtSecret []byte
+	userRepo   repository.UserRepository
+	jwtSecret  []byte
+	tokenStore repository.TokenStore
 }
 
-func NewAuthService(userRepo repository.UserRepository, jwtSecret string) AuthService {
+func NewAuthService(userRepo repository.UserRepository, jwtSecret string, tokenStore repository.TokenStore) AuthService {
 	return &authService{
-		userRepo:  userRepo,
-		jwtSecret: []byte(jwtSecret),
+		userRepo:   userRepo,
+		jwtSecret:  []byte(jwtSecret),
+		tokenStore: tokenStore,
 	}
 }
 
@@ -120,4 +126,80 @@ func (s *authService) generateToken(user *models.User) (string, error) {
 	})
 
 	return token.SignedString(s.jwtSecret)
+}
+
+// RefreshToken implementation
+func (s *authService) RefreshToken(ctx context.Context, token string) (*models.AuthResponse, error) {
+	// Validate the existing token
+	user, err := s.ValidateToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if token is blacklisted
+	isBlacklisted, err := s.tokenStore.IsBlacklisted(ctx, token)
+	if err != nil {
+		return nil, err
+	}
+	if isBlacklisted {
+		return nil, errors.ErrInvalidToken
+	}
+
+	// Generate new token
+	newToken, err := s.generateToken(user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.AuthResponse{
+		Token: newToken,
+		User:  user,
+	}, nil
+}
+
+// Logout implementation
+func (s *authService) Logout(ctx context.Context, token string) error {
+	if s.tokenStore == nil {
+		log.Println("TokenStore is nil")
+		return fmt.Errorf("token store not initialized")
+	}
+
+	// Validate the token first
+	_, err := s.ValidateToken(token)
+	if err != nil {
+		log.Printf("Token validation failed: %v\n", err)
+		return err
+	}
+
+	// Parse the token to get expiration time
+	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		return s.jwtSecret, nil
+	})
+	if err != nil {
+		log.Printf("Token parsing failed: %v\n", err)
+		return err
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		log.Println("Failed to parse token claims")
+		return errors.ErrInvalidToken
+	}
+
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		log.Println("Failed to get expiration from token")
+		return errors.ErrInvalidToken
+	}
+
+	expTime := time.Unix(int64(exp), 0)
+	timeUntilExp := time.Until(expTime)
+
+	// Add token to blacklist
+	if err := s.tokenStore.Blacklist(ctx, token, timeUntilExp); err != nil {
+		log.Printf("Failed to blacklist token: %v\n", err)
+		return fmt.Errorf("failed to blacklist token: %w", err)
+	}
+
+	return nil
 }

@@ -1,4 +1,4 @@
-﻿// Package errors internal/errors/errors.go
+// Package errors internal/errors/errors.go
 package errors
 
 import "errors"
@@ -15,6 +15,7 @@ var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserExists         = errors.New("user already exists")
 	ErrInvalidToken       = errors.New("invalid token")
+	ErrTokenExpired       = errors.New("token expired")
 )
 
 // Project errors

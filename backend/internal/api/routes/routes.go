@@ -1,10 +1,11 @@
-﻿// Package routes internal/api/routes/routes.go
+// Package routes internal/api/routes/routes.go
 package routes
 
 import (
 	"projectnexus/internal/api/handlers"
 	"projectnexus/internal/config"
 	"projectnexus/internal/middleware"
+	"projectnexus/internal/repository"
 	mongorepo "projectnexus/internal/repository/mongo"
 	"projectnexus/internal/services"
 
@@ -12,18 +13,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func SetupRouter(router *gin.Engine, db *mongo.Database) {
+func SetupRouter(router *gin.Engine, db *mongo.Database, tokenStore repository.TokenStore) {
 	// Initialize repositories
 	userRepo := mongorepo.NewUserRepository(db)
 	projectRepo := mongorepo.NewProjectRepository(db)
 	documentRepo := mongorepo.NewDocumentRepository(db)
 	teamRepo := mongorepo.NewTeamRepository(db)
-	teamMemberRepo := mongorepo.NewTeamMemberRepository(db) // NEW
+	teamMemberRepo := mongorepo.NewTeamMemberRepository(db)
 	mockupRepo := mongorepo.NewMockupRepository(db)
 
 	// Initialize services
 	config_ := config.Load()
-	authService := services.NewAuthService(userRepo, config_.JWTSecret)
+	authService := services.NewAuthService(userRepo, config_.JWTSecret, tokenStore)
 	projectService := services.NewProjectService(projectRepo, userRepo)
 	documentService := services.NewDocumentService(documentRepo, projectRepo)
 	teamService := services.NewTeamService(teamRepo, teamMemberRepo, projectRepo, userRepo)
@@ -52,6 +53,8 @@ func SetupRouter(router *gin.Engine, db *mongo.Database) {
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
+			auth.POST("/refresh", authHandler.RefreshToken)
+			auth.POST("/logout", authHandler.Logout)
 		}
 
 		// Protected routes
