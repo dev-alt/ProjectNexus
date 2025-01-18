@@ -9,10 +9,7 @@ interface PageProps {
     searchParams: { [key: string]: string | string[] | undefined };
 }
 
-export default async function Page({ params }: PageProps) {
-    // Properly await the params using Promise.resolve()
-    const { id } = await Promise.resolve(params);
-
+export default function Page({ params }: PageProps) {
     return (
         <Suspense fallback={
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -20,7 +17,7 @@ export default async function Page({ params }: PageProps) {
             </div>
         }>
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-                <ProjectPresentation id={id} />
+                <ProjectPresentation id={params.id} />
             </div>
         </Suspense>
     );
