@@ -163,13 +163,16 @@ export default function DocumentsPage() {
                             />
                         )}
 
-                        {modalState.type === 'view' && modalState.document && (
-                            <DocumentViewer
-                                document={modalState.document}
-                                onClose={() => setModalState({ type: 'none' })}
-                                onEdit={() => setModalState({ type: 'edit', document: modalState.document })}
-                            />
-                        )}
+            {modalState.type === 'view' && modalState.document && (
+                <DocumentViewer
+                    document={modalState.document}
+                    onClose={() => setModalState({ type: 'none' })}
+                    onEdit={() => setModalState({
+                        type: 'edit',
+                        document: modalState.document
+                    })}
+                />
+            )}
                     </div>
                     );
                 }

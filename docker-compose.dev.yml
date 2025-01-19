@@ -30,6 +30,7 @@
       - JWT_SECRET=your-secret-key-here
       - GIN_MODE=debug
       - REDIS_URL=redis:6479
+      - REDIS_PASSWORD=your-redis-password
     volumes:
       - ./backend:/app
     depends_on:
@@ -63,18 +64,18 @@
 
   redis:
     image: redis:alpine
+    command: redis-server --requirepass your-redis-password --port 6479 
     ports:
-      - "6479:6479"
+      - "6479:6479" 
     networks:
       - projectnexus-network-dev
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-p", "6479", "ping"] 
       interval: 5s
       timeout: 3s
       retries: 3
     volumes:
       - redis_data:/data
-        
   
   mongo-express:
     image: mongo-express

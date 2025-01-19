@@ -5,7 +5,6 @@ import "./globals.css";
 import { AuthProvider } from '@/lib/context/auth';
 import React from "react";
 import { Toaster } from "@/components/ui/Toaster";
-import Script from 'next/script';
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -109,11 +108,6 @@ export default function RootLayout({
             {children}
         </AuthProvider>
         <Toaster />
-        <Script
-            src="https://static.cloudflareinsights.com/beacon.min.js"
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-        />
         </body>
         </html>
     );
